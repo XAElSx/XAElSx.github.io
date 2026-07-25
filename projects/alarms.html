@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Case study: a daily-fresh operations-exception dashboard for a national postal and logistics operator, hand-rolled when the platform had no orchestrator, no writable database, and no native partial-refresh in Power BI. Still in production four years later." />
+<meta name="theme-color" content="#0a0f1a" />
+<meta property="og:title" content="Engineering Around Three Missing Primitives — Incremental Power BI Refresh on a 2022 Stack" />
+<meta property="og:description" content="Eight alarms, one shared report, one Azure AD app I had to build so the pieces could talk. How I shipped a daily-fresh operations-exception dashboard with no Data Factory, no writable database, and no native partial-refresh in Power BI." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://danielapatricio.github.io/projects/alarms.html" />
+<meta property="og:image" content="https://danielapatricio.github.io/assets/linkedin-featured-dark.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Engineering Around Three Missing Primitives — Case Study" />
+<meta name="twitter:description" content="A daily-fresh operations-exception dashboard hand-rolled on Power BI, Power Automate, and SharePoint when the platform was missing three primitives. Four years in production." />
+<meta name="twitter:image" content="https://danielapatricio.github.io/assets/linkedin-featured-dark.png" />
+<title>Engineering Around Three Missing Primitives — Case Study · Daniela Patrício</title>
+
+<script>
+(function() {
+  try {
+    var saved = localStorage.getItem("dp-theme");
+    var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230a0f1a'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='ui-monospace,Menlo,monospace' font-weight='700' font-size='14' fill='%2322d3ee'>dp</text></svg>" />
+
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg-0: #070b14; --bg-1: #0a0f1a; --bg-2: #0f1624; --bg-3: #141d30;
+    --surface: #111826; --surface-hi: #1a2336;
+    --border: rgba(120, 160, 210, 0.12); --border-hi: rgba(120, 180, 230, 0.25);
+    --text: #e7ecf4; --text-dim: #9aa7bd; --text-mute: #6b7891;
+    --primary: #22d3ee; --primary-hi: #67e8f9; --primary-dim: #0891b2;
+    --primary-glow: rgba(34, 211, 238, 0.18);
+    --accent-2: #a78bfa; --accent-3: #34d399; --accent-4: #fbbf24;
+    --success: #10b981;
+    --grid-line: rgba(120, 160, 210, 0.05);
+    --title-grad: linear-gradient(180deg, #ffffff 0%, #b7c3d8 100%);
+    --strong-color: #f2f6fc;
+    --nav-bg: rgba(7, 11, 20, 0.7);
+    --footer-bg: rgba(0, 0, 0, 0.2);
+    --diagram-bg: rgba(255,255,255,.015);
+    --diagram-box: rgba(20, 29, 48, 0.7);
+    --diagram-box-stroke: rgba(120, 160, 210, 0.22);
+    --diagram-internal: rgba(167, 139, 250, 0.14);
+    --diagram-internal-stroke: rgba(167, 139, 250, 0.45);
+    --diagram-external: rgba(34, 211, 238, 0.12);
+    --diagram-external-stroke: rgba(34, 211, 238, 0.5);
+    --diagram-arrow: rgba(154, 167, 189, 0.55);
+    --diagram-label: #9aa7bd;
+    --diagram-text: #e7ecf4;
+    --diagram-emph: #67e8f9;
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --radius: 12px; --radius-lg: 18px;
+    --max: 880px; --pad: clamp(1.25rem, 2vw, 2rem);
+  }
+  :root[data-theme="light"] {
+    --bg-0: #ffffff; --bg-1: #f8fafc; --bg-2: #f1f5f9; --bg-3: #e2e8f0;
+    --surface: #ffffff; --surface-hi: #f8fafc;
+    --border: rgba(15, 22, 36, 0.10); --border-hi: rgba(15, 22, 36, 0.20);
+    --text: #0f1624; --text-dim: #475569; --text-mute: #6b7280;
+    --primary: #0891b2; --primary-hi: #0e7490; --primary-dim: #22d3ee;
+    --primary-glow: rgba(8, 145, 178, 0.14);
+    --accent-2: #7c3aed; --accent-3: #047857; --accent-4: #d97706;
+    --success: #047857;
+    --grid-line: rgba(15, 22, 36, 0.04);
+    --title-grad: linear-gradient(180deg, #0f1624 0%, #475569 100%);
+    --strong-color: #0a1320;
+    --nav-bg: rgba(255, 255, 255, 0.78);
+    --footer-bg: rgba(15, 22, 36, 0.03);
+    --diagram-bg: rgba(8,145,178,.03);
+    --diagram-box: #ffffff;
+    --diagram-box-stroke: rgba(15, 22, 36, 0.18);
+    --diagram-internal: rgba(124, 58, 237, 0.10);
+    --diagram-internal-stroke: rgba(124, 58, 237, 0.45);
+    --diagram-external: rgba(8, 145, 178, 0.08);
+    --diagram-external-stroke: rgba(8, 145, 178, 0.50);
+    --diagram-arrow: rgba(71, 85, 105, 0.65);
+    --diagram-label: #475569;
+    --diagram-text: #0f1624;
+    --diagram-emph: #0e7490;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;min-height:100vh;font-family:var(--font-sans);font-size:16px;line-height:1.7;color:var(--text);background:var(--bg-0);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  img,svg{display:block;max-width:100%}
+  a{color:var(--primary-hi);text-decoration:none;transition:color .2s}
+  a:hover{color:var(--primary)}
+  ul,ol{padding:0;margin:0;list-style:none}
+  h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+  strong{color:var(--strong-color);font-weight:600}
+  em{color:var(--text);font-style:italic}
+  .mono{font-family:var(--font-mono);font-feature-settings:"liga" 0,"calt" 0}
+  code{font-family:var(--font-mono);font-size:.88em;color:var(--primary-hi);background:rgba(34,211,238,.08);padding:.1rem .35rem;border-radius:4px}
+  :root[data-theme="light"] code{color:var(--primary);background:rgba(8,145,178,.08)}
+
+  .bg-grid{position:fixed;inset:0;z-index:-2;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:64px 64px;-webkit-mask-image:radial-gradient(ellipse at 50% 0%,black 30%,transparent 80%);mask-image:radial-gradient(ellipse at 50% 0%,black 30%,transparent 80%)}
+  .bg-glow{position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:900px;height:600px;z-index:-1;background:radial-gradient(closest-side,var(--primary-glow),transparent 70%);filter:blur(40px);pointer-events:none}
+
+  .nav{position:sticky;top:0;z-index:50;-webkit-backdrop-filter:saturate(160%) blur(10px);backdrop-filter:saturate(160%) blur(10px);background:var(--nav-bg);border-bottom:1px solid var(--border)}
+  .nav-inner{max-width:1200px;margin:0 auto;padding:.9rem var(--pad);display:flex;align-items:center;justify-content:space-between;gap:2rem}
+  .nav-logo{display:inline-flex;align-items:baseline;font-family:var(--font-mono);font-weight:600;color:var(--text);font-size:1.1rem}
+  .logo-mark{color:var(--primary)}
+  .nav-back{font-family:var(--font-mono);font-size:.9rem;color:var(--text-dim);display:inline-flex;align-items:center;gap:.4rem}
+  .nav-back:hover{color:var(--primary-hi)}
+  .nav-actions{display:inline-flex;align-items:center;gap:1rem}
+
+  .theme-toggle{background:transparent;border:1px solid var(--border);border-radius:999px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;padding:0;transition:color .2s,border-color .2s,background .2s}
+  .theme-toggle:hover{color:var(--primary);border-color:var(--primary);background:rgba(34,211,238,.06)}
+  :root[data-theme="light"] .theme-toggle:hover{background:rgba(8,145,178,.06)}
+  .theme-toggle svg{width:16px;height:16px}
+  .theme-toggle .icon-sun{display:none}
+  :root[data-theme="light"] .theme-toggle .icon-sun{display:block}
+  :root[data-theme="light"] .theme-toggle .icon-moon{display:none}
+
+  article{max-width:var(--max);margin:0 auto;padding:clamp(2.5rem,6vw,4rem) var(--pad) 4rem}
+
+  .article-kicker{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .75rem;border:1px solid rgba(34,211,238,.35);border-radius:999px;background:rgba(34,211,238,.06);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--primary-hi);margin-bottom:1.25rem}
+  :root[data-theme="light"] .article-kicker{background:rgba(8,145,178,.06);border-color:rgba(8,145,178,.35);color:var(--primary)}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.2);animation:pulse 2s ease-in-out infinite}
+  :root[data-theme="light"] .live-dot{box-shadow:0 0 0 3px rgba(16,185,129,.25)}
+  @keyframes pulse{50%{box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+
+  h1.title{font-size:clamp(2rem,4.5vw,3.25rem);font-weight:700;letter-spacing:-.03em;background:var(--title-grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:.75rem}
+  .subtitle{font-size:1.1rem;color:var(--text-dim);max-width:60ch;margin-bottom:2rem}
+
+  .meta-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+  .meta-chip{font-family:var(--font-mono);font-size:.75rem;padding:.3rem .65rem;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);background:rgba(255,255,255,.02)}
+  :root[data-theme="light"] .meta-chip{background:rgba(8,145,178,.04)}
+  .meta-chip.primary{border-color:rgba(34,211,238,.35);color:var(--primary-hi);background:rgba(34,211,238,.08)}
+  :root[data-theme="light"] .meta-chip.primary{background:rgba(8,145,178,.10);border-color:rgba(8,145,178,.35);color:var(--primary)}
+  .meta-chip.accent{border-color:rgba(167,139,250,.35);color:var(--accent-2);background:rgba(167,139,250,.08)}
+  :root[data-theme="light"] .meta-chip.accent{background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.35);color:var(--accent-2)}
+
+  h2.h{font-size:clamp(1.4rem,2.4vw,1.75rem);margin:3rem 0 1rem;color:var(--text);position:relative;padding-left:1rem}
+  h2.h::before{content:"";position:absolute;left:0;top:.55em;height:.7em;width:3px;background:var(--primary);border-radius:2px}
+  h3.sh{font-size:1.05rem;margin:1.75rem 0 .5rem;color:var(--text)}
+
+  p{margin:0 0 1rem;color:var(--text-dim)}
+  p strong{color:var(--text)}
+
+  .lead{font-size:1.1rem;color:var(--text);line-height:1.7;border-left:2px solid var(--primary);padding-left:1rem;margin:1.5rem 0 2rem}
+
+  .bullets{margin:.5rem 0 1.25rem}
+  .bullets li{position:relative;padding-left:1.4rem;margin-bottom:.65rem;color:var(--text-dim)}
+  .bullets li::before{content:"▸";position:absolute;left:0;color:var(--primary);font-size:.9rem;top:1px}
+  .bullets li strong{color:var(--text)}
+
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.8rem;margin:1.5rem 0 2.5rem}
+  .stat-card{padding:1rem 1.1rem;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.015)}
+  :root[data-theme="light"] .stat-card{background:rgba(8,145,178,.025)}
+  .stat-num{font-family:var(--font-mono);font-size:1.5rem;font-weight:600;color:var(--text);line-height:1;margin-bottom:.3rem}
+  .stat-num .accent{color:var(--primary)}
+  .stat-label{font-size:.75rem;color:var(--text-mute);text-transform:uppercase;letter-spacing:.05em}
+
+  .callout{margin:2rem 0;padding:1.25rem 1.5rem;border-left:3px solid var(--accent-4);background:linear-gradient(90deg,rgba(251,191,36,.06),transparent);border-radius:0 var(--radius) var(--radius) 0}
+  :root[data-theme="light"] .callout{background:linear-gradient(90deg,rgba(217,119,6,.07),transparent)}
+  .callout .ck{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-4);margin-bottom:.4rem}
+  .callout p{margin:0;color:var(--text)}
+
+  .takeaways{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:1.5rem 0 2rem}
+  .takeaway{padding:1.25rem;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.015)}
+  :root[data-theme="light"] .takeaway{background:rgba(8,145,178,.025)}
+  .takeaway .num{font-family:var(--font-mono);color:var(--primary);font-size:.85rem;margin-bottom:.5rem}
+  .takeaway h4{font-size:.95rem;margin-bottom:.4rem;color:var(--text)}
+  .takeaway p{font-size:.88rem;margin:0;color:var(--text-dim);line-height:1.5}
+
+  pre.code{font-family:var(--font-mono);font-size:.82rem;line-height:1.55;color:var(--text-dim);background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.2rem;margin:1.25rem 0 2rem;overflow-x:auto;white-space:pre}
+  :root[data-theme="light"] pre.code{background:rgba(8,145,178,.025)}
+  pre.code .kw{color:var(--primary)}
+  pre.code .cmt{color:var(--text-mute);font-style:italic}
+
+  .diagram{margin:1.5rem 0 2rem;padding:1.25rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--diagram-bg);overflow-x:auto}
+  .diagram svg{display:block;width:100%;height:auto;min-width:560px}
+  .diagram-caption{font-size:.82rem;color:var(--text-mute);font-family:var(--font-mono);text-align:center;margin-top:.75rem}
+
+  .footer-cta{margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1.1rem;border-radius:var(--radius);font-weight:500;font-size:.92rem;border:1px solid transparent;transition:all .2s}
+  .btn-primary{background:var(--primary);color:#04131a;border-color:var(--primary)}
+  .btn-primary:hover{background:var(--primary-hi);box-shadow:0 0 0 6px var(--primary-glow);transform:translateY(-1px)}
+  :root[data-theme="light"] .btn-primary{color:#ffffff}
+  .btn-ghost{background:transparent;color:var(--text);border-color:var(--border-hi)}
+  .btn-ghost:hover{border-color:var(--primary);color:var(--primary-hi)}
+  :root[data-theme="light"] .btn-ghost:hover{color:var(--primary)}
+
+  .footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.5rem var(--pad);background:var(--footer-bg)}
+  .footer-inner{max-width:var(--max);margin:0 auto;font-size:.78rem;color:var(--text-mute);font-family:var(--font-mono);text-align:center}
+
+  @media (max-width:640px){
+    .footer-cta{flex-direction:column;align-items:stretch}
+    .footer-cta .btn{justify-content:center}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="../index.html" class="nav-logo"><span class="logo-mark">dp</span></a>
+      <div class="nav-actions">
+        <a href="../index.html" class="nav-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to portfolio
+        </a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark theme" aria-pressed="false" title="Toggle theme">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <article>
+    <span class="article-kicker">
+      <span class="live-dot"></span>
+      Case Study · Production · 4+ years
+    </span>
+
+    <h1 class="title">Engineering around three missing primitives — incremental Power BI refresh on a 2022 stack.</h1>
+    <p class="subtitle">
+      A daily-fresh operations-exception dashboard for a national postal and logistics
+      operator, shipped when the platform had no orchestrator, no writable database, and
+      no native partial-refresh in Power BI. Eight alarms, one shared report, one Azure AD
+      app I had to build so the pieces could talk. Still in production four years later.
+    </p>
+
+    <div class="meta-row">
+      <span class="meta-chip primary">Status · Production</span>
+      <span class="meta-chip accent">Type · BI Engineering</span>
+      <span class="meta-chip">Power BI</span>
+      <span class="meta-chip">Power Automate</span>
+      <span class="meta-chip">Databricks SQL</span>
+      <span class="meta-chip">SharePoint as store</span>
+      <span class="meta-chip">Azure AD App</span>
+      <span class="meta-chip">Power BI REST API</span>
+      <span class="meta-chip">DAX</span>
+    </div>
+
+    <p class="lead">
+      Before this dashboard existed, the operations-quality team published the same
+      information as a SharePoint page of screenshots. Someone on the team ran the SQL
+      queries each morning, exported the results to Excel, captured screenshots of the
+      eight alarm tables, and updated the SharePoint page by hand. Daily, business days
+      only. Logistics operations run twenty-four hours a day. The night shift, the
+      weekend, and anyone deciding outside the morning window were looking at what had
+      happened, not what was happening.
+    </p>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num"><span class="accent">8</span></div>
+        <div class="stat-label">Operational alarms tracked</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><span class="accent">4+ yrs</span></div>
+        <div class="stat-label">In production since 2022</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><span class="accent">#1 / #2</span></div>
+        <div class="stat-label">Most-viewed report org-wide</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><span class="accent">1</span></div>
+        <div class="stat-label">Hand-rolled refresh orchestrator</div>
+      </div>
+    </div>
+
+    <h2 class="h">The brief</h2>
+    <p>
+      The director of operations quality asked my own director for an embedded analyst:
+      someone to optimise the SQL queries already running against the lake replica and
+      rebuild the operations-exception view as a Power BI report. I was assigned, and
+      I went, deliberately. I was already on the Data and Analytics team; the embed
+      was a chance to work closer to the end consumers of my reports and grow business
+      acumen on the operational side.
+    </p>
+
+    <p>
+      The audience was operations management, upper and middle. They were expected to
+      watch the dashboard for situations they could act on: packages that needed
+      re-prioritising for next-day delivery, exceptions accumulating in particular
+      regions, alarm counts trending the wrong way. Push notifications and
+      routing-to-named-people were not in scope. The dashboard was the surface, and a
+      refresh that kept up with the operational day was the deliverable.
+    </p>
+
+    <p>
+      The team I was embedded with wasn't a data team. It was an operations-support
+      business team. The most data-capable person on it had RPA experience and was
+      learning SQL. The team had also taken on, of their own initiative, the central
+      data team's philosophy of standardising KPI definitions, applied to operational
+      metrics: a goal of getting operations and reporting on the same definitions so
+      conversations about a missed SLA or an alarm count meant the same thing on both
+      sides of a meeting. The alarm dashboard ended up being one of the canonical
+      surfaces where those team-level standardised definitions lived.
+    </p>
+
+    <h2 class="h">What was there before</h2>
+    <p>
+      The same eight alarms had been published for some time as a SharePoint page of
+      screenshots. Each morning someone on the team ran the queries, exported the
+      results to Excel, screenshotted the relevant cells, and updated the SharePoint
+      page. The page was the dashboard. The screenshots were the visuals. That set of
+      mechanics carried a stack of problems the new system had to dissolve, not paper
+      over:
+    </p>
+
+    <ul class="bullets">
+      <li><strong>Daily, business days only.</strong> Logistics is twenty-four-seven. Most of the operational week ran on stale information, and there was no way for the night shift or weekend coverage to see the current state.</li>
+      <li><strong>Screenshots are static.</strong> A regional manager who wanted to see just their region had to ask for an export and wait, or learn to read someone else's regional cut. Self-service didn't exist.</li>
+      <li><strong>No history layer.</strong> Each refresh overwrote the previous state. There was no way to track whether a given alarm was trending down, up, or oscillating week-over-week.</li>
+      <li><strong>Manual labour put the whole pipeline on one person's calendar.</strong> If that person was sick, the page was stale. The pipeline had a bus factor of one.</li>
+      <li><strong>Eight alarms scattered across SharePoint sections.</strong> No overview, no comparison, and the cognitive cost of jumping between sections was a tax on the people who most needed the information.</li>
+    </ul>
+
+    <h2 class="h">The constraints that shaped everything</h2>
+    <p>
+      CTT runs a federated data model. A central Data and AI team owns the platforms
+      (Azure Data Factory, the full Databricks workspace, Azure Synapse, SSIS where it
+      fits, Grafana for pipeline observability) and the standardised KPI definitions at
+      the organisation level. Business teams consume from governed data sources (what
+      lives where, who has access) and build their own tooling on whatever they can
+      get permission for. The solution I built wasn't sanctioned, wasn't standardised,
+      wasn't even widely discussed. It was a bespoke invention to solve a specific
+      operational need within what this team could actually touch.
+    </p>
+
+    <p>What the team had access to:</p>
+
+    <ul class="bullets">
+      <li><strong>Databricks SQL.</strong> Governed read access to a recent-months replica of the lake (raw-to-prepared views, not the full lake).</li>
+      <li><strong>Power BI.</strong> Existing licenses and existing usage; the team already consumed reports.</li>
+      <li><strong>SharePoint.</strong> Universal, no friction.</li>
+      <li><strong>Power Automate.</strong> Which my colleague and I specifically requested access to after concluding it was the best orchestration path on the table.</li>
+    </ul>
+
+    <p>
+      Three primitives I needed and didn't have inside that accessible toolkit shaped
+      every design choice from here.
+    </p>
+
+    <h3 class="sh">1. No orchestrator that this team could run</h3>
+    <p>
+      The proper orchestrator (Azure Data Factory) sits with central D&amp;AI by
+      design. Operating it requires data-platform skill the support team didn't have,
+      and the D&amp;AI team didn't have bandwidth to build and operate a custom
+      pipeline for this use case at the cadence the operations side needed. Power
+      Automate was the orchestration we got permission to use. It is built for office
+      workflows (approvals, file moves, email triggers) rather than data pipelines:
+      the wrong abstraction layer for what I needed in the abstract, and exactly the
+      right one for this team in practice, because the RPA-experienced colleague could
+      maintain it after I left.
+    </p>
+
+    <h3 class="sh">2. No writable database that this team could write to</h3>
+    <p>
+      Databricks SQL was the governed source, read-only. Notebook entitlement,
+      Databricks Jobs, write-back into Databricks SQL, and Synapse write permissions
+      all sit on the central-platform side of the line. The historic layer the brief
+      required, so management could track improvement on alarms over time, had nowhere
+      to live inside what this team could touch except file storage. SharePoint
+      document libraries became the database by default.
+    </p>
+
+    <div class="callout">
+      <p class="ck">2026 reader note</p>
+      <p>Databricks SQL and the full Databricks workspace were distinct in 2022. The SQL workspace was query-only against a lake replica; the full workspace (notebooks, Jobs, ML) was a separate entitlement this team never got. A reader looking at this in 2026 might see "Databricks SQL was available" and assume the team had richer Databricks access than it did. It didn't, and that wasn't a transient state.</p>
+    </div>
+
+    <h3 class="sh">3. No partial-refresh primitive in Power BI</h3>
+    <p>
+      This one is the only company-wide platform gap. A full refresh of the reporting
+      dataset took more than thirty minutes. An individual alarm query took one to ten.
+      To deliver any single alarm fresh under the native model, the whole dataset
+      would have to be re-pulled, which stacked thirty minutes of dataset overhead
+      onto every ten minutes of useful work. Power BI itself, in 2022, exposed no
+      native way to refresh a single table inside a dataset. That primitive is what
+      would have made this trivial, and it didn't exist.
+    </p>
+
+    <h2 class="h">The architecture</h2>
+    <p>
+      Power Automate is the orchestrator. Inside each per-alarm flow, six action steps
+      run end to end. The built-in Power Automate connectors cover four of them
+      (trigger refresh, run DAX query, create CSV table, write to SharePoint). The two
+      they didn't cover at the time (read a dataset's refresh status, partially refresh
+      a dataset) I built as a custom Power Automate connector, backed by an Azure AD
+      app I registered for this. The connector exposes those two verbs in the
+      Power Automate action picker alongside the built-ins, so any future flow in the
+      tenant can use them without re-implementing the REST plumbing.
+    </p>
+
+    <p>
+      Eight alarms, eight flows, each on its own schedule, each writing to its own
+      file in a SharePoint document library, all converging on the same Power BI
+      reporting dataset. For each alarm the flow runs as follows:
+    </p>
+
+    <ul class="bullets">
+      <li><strong>Schedule trigger.</strong> Power Automate fires at the time of day relevant to that specific alarm.</li>
+      <li><strong>Refresh the writer dataset.</strong> Built-in Power BI action triggers a refresh on the alarm's dedicated writer dataset.</li>
+      <li><strong>Poll for refresh status.</strong> My custom connector's first action checks the Power BI REST API every 30 to 60 seconds until status leaves Unknown. The built-in connector at the time didn't return refresh status, which is why this action had to exist.</li>
+      <li><strong>Run the DAX query.</strong> Built-in Run-a-query-against-a-dataset action executes against the refreshed writer dataset, returning the alarm's current row set.</li>
+      <li><strong>Write the result as a CSV.</strong> Power Automate's Create CSV table action serialises the rows; the file is written to a SharePoint document library, one file per alarm.</li>
+      <li><strong>Partial-refresh the reporting dataset.</strong> My custom connector's second action POSTs to <code>/datasets/{id}/refreshes</code> with an <code>objects</code> body. This is the Enhanced Refresh API, which had just shipped from Microsoft in 2022, and it lets you refresh a single table inside a dataset instead of the whole thing. On the first and middle flows of the day the same call also refreshes the dimension tables, which change rarely enough that twice-daily is sufficient.</li>
+    </ul>
+
+    <div class="diagram">
+      <svg viewBox="0 0 760 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architecture diagram: a single Power Automate flow runs per alarm. Inside the flow, six action steps trigger a writer-dataset refresh, poll status via a custom Azure AD app, run a DAX query, create a CSV table, write to SharePoint, and POST a partial refresh via the Enhanced Refresh API. The reporting dataset then feeds a Power BI report consumed by operations management.">
+        <defs>
+          <marker id="arrow-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--diagram-arrow)"/>
+          </marker>
+        </defs>
+
+        <text x="380" y="22" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" letter-spacing="1.5" fill="var(--diagram-label)">PER-ALARM POWER AUTOMATE FLOW · ×8</text>
+
+        <!-- One big container box: the Power Automate flow itself -->
+        <rect x="40" y="40" width="680" height="290" rx="12" fill="var(--diagram-box)" stroke="var(--diagram-box-stroke)" stroke-width="1"/>
+
+        <!-- Step 1 -->
+        <text x="70" y="80" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="var(--diagram-text)">1. Trigger writer-dataset refresh</text>
+        <text x="690" y="80" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--diagram-label)">built-in PBI action</text>
+
+        <!-- Step 2 (CUSTOM CONNECTOR, action 1) -->
+        <text x="70" y="120" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="var(--diagram-text)">2. Poll refresh status until status leaves Unknown</text>
+        <text x="690" y="120" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-2)">custom connector · every 30-60s</text>
+
+        <!-- Step 3 -->
+        <text x="70" y="160" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="var(--diagram-text)">3. Run DAX query against the refreshed writer dataset</text>
+        <text x="690" y="160" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--diagram-label)">built-in PBI action</text>
+
+        <!-- Step 4 -->
+        <text x="70" y="200" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="var(--diagram-text)">4. Create CSV table from the query result</text>
+        <text x="690" y="200" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--diagram-label)">built-in PA action</text>
+
+        <!-- Step 5 -->
+        <text x="70" y="240" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="var(--diagram-text)">5. Write CSV to a SharePoint document library</text>
+        <text x="690" y="240" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--diagram-label)">built-in SharePoint connector</text>
+
+        <!-- Step 6 (CUSTOM CONNECTOR, action 2 · wraps just-shipped Enhanced Refresh API) -->
+        <text x="70" y="290" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="var(--diagram-text)">6. POST partial refresh on the reporting dataset table</text>
+        <text x="690" y="290" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-2)">custom connector</text>
+        <text x="690" y="306" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--diagram-emph)">wraps Enhanced Refresh API · 2022</text>
+
+        <!-- Arrow out of the flow, down to reporting dataset -->
+        <line x1="380" y1="330" x2="380" y2="365" stroke="var(--diagram-arrow)" stroke-width="1.5" marker-end="url(#arrow-a)"/>
+
+        <!-- Reporting dataset -->
+        <rect x="240" y="365" width="280" height="60" rx="8" fill="var(--diagram-box)" stroke="var(--diagram-box-stroke)" stroke-width="1"/>
+        <text x="380" y="391" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="var(--diagram-text)">Reporting dataset</text>
+        <text x="380" y="410" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="var(--diagram-label)">8 alarm tables · dimensions refreshed twice per day</text>
+
+        <line x1="380" y1="425" x2="380" y2="450" stroke="var(--diagram-arrow)" stroke-width="1.5" marker-end="url(#arrow-a)"/>
+
+        <!-- Dashboard -->
+        <rect x="240" y="450" width="280" height="50" rx="8" fill="var(--diagram-box)" stroke="var(--diagram-emph)" stroke-width="1.5"/>
+        <text x="380" y="472" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="var(--diagram-text)">Power BI report</text>
+        <text x="380" y="489" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="var(--diagram-label)">operations management · 8 pages + summary</text>
+      </svg>
+      <p class="diagram-caption">All six steps live inside a single Power Automate flow per alarm. Steps 2 and 6 (purple) come from the custom Power Automate connector I built: two actions exposed alongside the built-ins, covering the verbs the built-in Power BI connector didn't have. Step 6 wraps the just-shipped Enhanced Refresh API (cyan).</p>
+    </div>
+
+    <div class="callout">
+      <p class="ck">Design principle</p>
+      <p>My goal when helping people is to deliver something they can maintain and customise without me. On this project that wasn't aspirational; it was structurally required. The team I built it for had no path to operate the central platform, and the central team didn't have bandwidth to take ownership of a custom build. The custom connector (with its two REST actions) sits in their tenant alongside the built-in connectors, so any future flow can use it; the Power Automate flows are theirs to inspect and modify; the CSVs in SharePoint are readable by anyone with access; the dataset table-per-alarm structure means a new alarm is "build the next writer dataset, schedule the next flow, add the next table." Someone joining the team after I left should be able to follow the data from end to end without asking for a handoff.</p>
+    </div>
+
+    <h3 class="sh">Why per-alarm writer datasets</h3>
+    <p>
+      Two reasons made this the right shape, given the constraints. First, each alarm
+      had its own time of day. The example alarm (packages that didn't reach
+      destination by end-of-day yesterday) made sense to refresh first thing in the
+      morning, when the next-day prioritisation decision was actually being made.
+      Others were pertinent mid-morning, after lunch, mid-afternoon. The cadence wasn't
+      uniform across the eight; tying them to a single shared writer dataset would have
+      forced all of them onto whichever schedule the shared dataset ran.
+    </p>
+    <p>
+      Second, failure isolation. A slow query or a failed refresh on one alarm shouldn't
+      take the other seven down with it. Per-alarm writer datasets meant the worst-case
+      impact of a failure was localised to one of eight surfaces in the dashboard, and
+      the rest of the day's flows kept running.
+    </p>
+
+    <h3 class="sh">Why the reporting dataset is decoupled from the reports</h3>
+    <p>
+      The reporting dataset and the consuming reports were published separately, with
+      the reports live-connecting to the dataset rather than embedding their own copy
+      of the model. Three reasons made this the right shape.
+    </p>
+    <p>
+      First, corruption resilience. Early in my time at CTT we'd had a single-pbix
+      file (dataset and visuals embedded together) corrupt in a way that took both
+      layers down at the same time. Decoupling them put the model and the report on
+      independent failure paths: a problem with one no longer cascaded into the other.
+    </p>
+    <p>
+      Second, deployment-cadence decoupling. Visual changes (a chart, a layout, a
+      colour, a tooltip) could be published without re-publishing the dataset. On a
+      single-pbix file every report change re-uploads the dataset and re-triggers its
+      refresh cycle, which makes visual iteration slow and expensive to ship. With
+      the dataset decoupled, the visual layer iterated at its own cadence without
+      paying refresh cost on every change.
+    </p>
+    <p>
+      Third, model reuse. A second or third report could live-connect to the same
+      reporting dataset without re-modelling. For this build that ended up being one
+      report rather than several, but the pattern kept the option open at no extra
+      cost.
+    </p>
+
+    <h3 class="sh">When one alarm outgrew the CSV-write action</h3>
+    <p>
+      One of the eight alarms returned a result set large enough to exceed the
+      CSV-write action's row ceiling. The Create CSV table action in Power Automate
+      truncates past a certain size, which means the obvious failure mode (the
+      dashboard shows nothing) is the safe one. The dangerous failure mode is the
+      one I had to engineer against: the dashboard shows what looks like complete
+      data but isn't.
+    </p>
+    <p>
+      The pattern I used is the canonical community count-and-page recipe (the one
+      Curbal documented):
+    </p>
+
+    <ul class="bullets">
+      <li>Count the alarm's total row count via a separate DAX query.</li>
+      <li>Initialise <code>Min Rows = 0</code> and <code>Max Rows = batch size</code> (I used a conservative 15,000).</li>
+      <li>Do Until loop until <code>Min Rows &gt;= total</code>.</li>
+      <li>Inside the loop: modify the DAX query to filter to the <code>Min..Max</code> slice, write that slice to its own CSV chunk, increment Min and Max.</li>
+      <li>Append all chunks into a single CSV after the loop exits.</li>
+    </ul>
+
+    <p>
+      It's the kind of pattern you build when the platform you're on hasn't anticipated
+      your data shape. The value of citing the community recipe rather than reinventing
+      it is partly speed and partly debug-ability: when something goes wrong months
+      later, the named pattern is searchable.
+    </p>
+
+    <h3 class="sh">The failure path</h3>
+    <p>
+      Each Power Automate flow had retries on the API calls. On persistent failure,
+      after retries exhausted or the poll loop exceeded Power Automate's own
+      max-execution time, the flow sent an email to my team.
+    </p>
+    <p>
+      The consumer-facing surface had no failure indicator. If a writer flow failed,
+      the corresponding table in the reporting dataset held yesterday's data, and the
+      dashboard rendered as if nothing was wrong. From the operations-management
+      perspective, the data looked current.
+    </p>
+    <p>
+      That asymmetry (observable failures in my team's inbox, invisible failures on
+      the dashboard) is the most honest piece of debt in this design. A modern rebuild
+      would surface refresh state in the dashboard itself; a 2022 rebuild on Power
+      Automate without modifying the dashboard layer would have meant adding a
+      "last successful refresh" column to every alarm's data source, which would have
+      created new failure modes of its own.
+    </p>
+
+    <h2 class="h">Trade-offs</h2>
+
+    <h3 class="sh">Asked latency vs delivered latency</h3>
+    <p>
+      The brief wanted data as fresh as possible after each operational event. The
+      thirty-minute full-refresh ceiling on the previous Excel-and-screenshots
+      workflow had already been a previously negotiated improvement. What I delivered
+      was a per-alarm refresh once per day, scheduled to the time of day each alarm's
+      underlying operational decision was actually being made. The example alarm
+      (packages that didn't reach destination by end-of-day yesterday) makes sense to
+      refresh first thing in the morning, because the decision the dashboard supports
+      (re-prioritise for next-day delivery) happens once, in the morning. The others
+      land mid-morning, after lunch, mid-afternoon, depending on the operational
+      rhythm of each.
+    </p>
+    <p>
+      That isn't real-time, and it isn't even hourly. It is fresher than the previous
+      solution by construction (the previous solution was business-days-only, manual,
+      screenshot-based), and it is the right cadence for the actual decisions the
+      dashboard supports. The gap between asked latency and delivered latency was
+      acknowledged inside the team and didn't get pushed back on, because nobody could
+      point to a decision the operations side was making intra-day that required the
+      same alarm refreshed twice.
+    </p>
+
+    <h3 class="sh">The product assumption that didn't fully survive</h3>
+    <p>
+      The design assumption was that operations management would prefer a visual report
+      tracking improvement over time (trends per alarm, regional breakdowns) to
+      receiving Excel lists by email. The actual consumption pattern, observed over
+      years: the dashboard is consistently one of the most-viewed reports in the
+      organisation, and most users export to Excel anyway, to filter and slice into
+      their own scope. The visualisation is the entry point; the Excel export is the
+      working tool.
+    </p>
+    <p>
+      Upper management does watch the trend visualisations in their scope, which means
+      the historic layer isn't unused. It's just narrower than I designed for. The
+      next iteration the team is now building (direct Excel delivery to named people)
+      reflects this honestly: the dashboard becomes less central, the data-as-Excel
+      becomes more central, and the engineering underneath (per-alarm queries,
+      historic CSVs, scheduled refresh, the custom connector) still does the work.
+      I think they're right to be moving in that direction.
+    </p>
+
+    <h2 class="h">Outcome</h2>
+    <p>
+      The dashboard went into production in 2022 and is still running. It is
+      consistently the #1 or #2 most-viewed Power BI report across the organisation,
+      depending on the day. The eight alarms it surfaces are still the same eight (the
+      categories of operational exceptions that warrant management attention haven't
+      shifted). The underlying engineering (writer flows, CSVs on SharePoint, the
+      custom Power Automate connector, the partial-refresh path through the Enhanced
+      Refresh API) is still operating in the background.
+    </p>
+    <p>
+      The dashboard also contributed to the team's KPI-standardisation work. It
+      became one of the canonical surfaces where the team's standardised operational
+      metric definitions lived, which made cross-team conversations about a missed
+      SLA or an alarm count resolve faster because everyone was looking at the same
+      computation. That's a softer impact than the engineering substance and harder
+      to point at as a discrete deliverable, but it is the kind of secondary
+      contribution that compounds over years.
+    </p>
+
+    <h2 class="h">What I'd build differently</h2>
+
+    <h3 class="sh">Back then, with hindsight (same constraints, same access boundary)</h3>
+    <p>
+      If I were rebuilding this for the same team on the same accessible toolkit,
+      with the benefit of having watched the original run for four years, the shape
+      would change in six places: five user-facing, one architectural.
+    </p>
+
+    <ul class="bullets">
+      <li><strong>A single alarms page.</strong> All eight alarms surfaced at a glance with their counts, instead of one page per alarm with a separate summary page at the end.</li>
+      <li><strong>Customised email digests.</strong> Each user gets the lists relevant to their scope sent to them, instead of opening the dashboard and exporting and filtering manually. This is the direction the team is moving in anyway; it should have been the design from the start for the middle-and-lower-management audience.</li>
+      <li><strong>Intra-day refresh per alarm.</strong> The lists shrink as the day progresses as situations get resolved. That visible operational progress is something middle and lower management would have noticed and used.</li>
+      <li><strong>A separate slim facts table for trends.</strong> Just amount-of-packages-per-alarm at start-of-day and end-of-day, decoupled from the per-alarm working lists. Sources the upper-management trend view without coupling it to the operational surface.</li>
+      <li><strong>Push notification on refresh.</strong> A short message to the relevant team channel or inbox when an alarm's data updates, with the new count. Closes the loop the original brief explicitly didn't include but the operational rhythm would have welcomed.</li>
+    </ul>
+
+    <p>
+      The architectural change: collapse the eight near-identical per-alarm flows
+      into a single parameterised flow driven by a configuration table (alarm name,
+      schedule, query, target table). A unified flow is more elegant, easier to
+      maintain when something changes uniformly across all alarms (a new retry
+      pattern, a new logging hook, a new dimension refresh rule), and lets a new
+      alarm get added with a config row instead of a cloned flow. The per-alarm
+      framing made sense at the time because it matched the rest of the architecture
+      cleanly, but the DRY violation is real.
+    </p>
+
+    <h3 class="sh">Today, on the modern stack</h3>
+    <p>
+      In 2026 the right answer is a different architecture entirely, and it's the
+      one the central D&amp;AI team is now building on the proper stack.
+    </p>
+
+    <p>
+      The modern version is streaming-first. Events flow from the operational source
+      systems into Bronze tables continuously, alarm logic runs as streaming
+      aggregations in Silver, alarm facts (current state plus history) materialise in
+      Gold tables. Power BI connects via DirectQuery or native incremental refresh,
+      with no custom connector needed because the platform has caught up:
+      refresh-status reads and partial-refresh actions are now first-class API verbs
+      and built-in connector actions. Push notifications fire at the alarm-event
+      level on the streaming side, via Teams or email connectors, not via Power
+      Automate polling the dataset state after the fact. Observability runs through
+      Grafana on the pipeline side and through Power BI's native refresh-state
+      indicators on the consumer side. The maintenance owner is the central D&amp;AI
+      team, which is the architecturally correct home for real-time operational
+      monitoring at this scale.
+    </p>
+
+    <p>
+      Real-time operational monitoring belongs on the streaming side of the medallion,
+      not on the consumption side. The Power Automate version was the right answer
+      for 2022 inside this team's access boundary; it isn't the right answer for 2026
+      from the platform side. Both can be true.
+    </p>
+
+    <h2 class="h">What I'd take into the next role</h2>
+    <div class="takeaways">
+      <div class="takeaway">
+        <p class="num">01</p>
+        <h4>Build for the hands that will run it after you leave</h4>
+        <p>When the binding constraint is who maintains the system post-handoff, the right toolkit is whatever those people can operate. The abstraction layer that's wrong in general can be right for a specific team.</p>
+      </div>
+      <div class="takeaway">
+        <p class="num">02</p>
+        <h4>A reusable connector beats a one-off script</h4>
+        <p>The custom Power Automate connector exposed two named verbs in the action picker. Any future flow in the tenant can use them. A connector is a vocabulary extension; a script is a hardcoded call you have to re-find.</p>
+      </div>
+      <div class="takeaway">
+        <p class="num">03</p>
+        <h4>Cite community patterns when you adopt them</h4>
+        <p>The pagination recipe was Curbal's. Adopting it (and naming it as such) is faster than reinventing, easier to maintain, and searchable when something breaks months later.</p>
+      </div>
+      <div class="takeaway">
+        <p class="num">04</p>
+        <h4>The honest debt belongs in the case study</h4>
+        <p>The dashboard shows yesterday's data silently when a writer flow fails. Surfacing that in the write-up is part of owning the system. A case study that doesn't surface its own debt is a sales pitch.</p>
+      </div>
+    </div>
+
+    <p>
+      The interesting thing about working at the consumption end of a governed data
+      platform is that you learn very quickly what the platform is actually for. Not
+      what the marketing pages say it's for, not what the architectural diagrams
+      imply it's for, but what the specific tools you can touch will and won't let
+      you do. Power Automate isn't built for data pipelines. Used as one, with care,
+      it has been running a daily-fresh operations-exception dashboard for four years
+      and counting. When there's a real operational need and a constrained toolkit,
+      the engineering is mostly about reading the toolkit's grain and working with
+      it instead of against it.
+    </p>
+
+    <div class="footer-cta">
+      <a class="btn btn-ghost" href="../index.html">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back to portfolio
+      </a>
+      <a class="btn btn-primary" href="../index.html#contact">
+        Get in touch
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+  </article>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      © <span id="year"></span> Daniela Patrício · Operations-exception dashboard case study
+    </div>
+  </footer>
+
+  <script>
+    const y = document.getElementById("year");
+    if (y) y.textContent = new Date().getFullYear();
+
+    const themeBtn = document.getElementById("themeToggle");
+    if (themeBtn) {
+      const updatePressed = () => {
+        const isLight = document.documentElement.getAttribute("data-theme") === "light";
+        themeBtn.setAttribute("aria-pressed", String(isLight));
+      };
+      updatePressed();
+      themeBtn.addEventListener("click", () => {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("dp-theme", next); } catch (e) {}
+        updatePressed();
+      });
+    }
+  </script>
+</body>
+</html>

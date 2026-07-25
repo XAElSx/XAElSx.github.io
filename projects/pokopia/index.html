@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pokopia Habitat Planner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    /* Pokopia cover-inspired: grass green with playful pops */
+    --bg: #e6efc9;              /* soft pale grass */
+    --panel: #fcfbf0;           /* warm cream */
+    --panel-2: #eff4dd;          /* paler grass */
+    --border: #cddba1;          /* sage edge */
+    --border-strong: #a6bc74;   /* deeper grass edge */
+    --text: #2d3a19;            /* dark forest */
+    --muted: #6f7c4f;           /* muted sage */
+    --accent: #5ea634;          /* grass green primary */
+    --accent-dark: #4a8b26;
+    --accent-soft: #dbe8bc;     /* pale sage */
+    --pop: #e55a41;             /* Pokécenter red — playful pop accent */
+    --warm: #e2733e;            /* warm orange — likes pill */
+    --purple: #8b6dc1;          /* playful purple — "N cats" badge */
+    --green: #3f9147;           /* deep leaf — "all liked" pill */
+    --sky: #66b6d8;             /* pond blue */
+    --shadow: 0 1px 2px rgba(40, 60, 20, 0.06), 0 6px 18px rgba(40, 60, 20, 0.10);
+
+    /* habitat colours — natural + playful */
+    --h-bright: #dba33a;
+    --h-dark:   #6058ad;
+    --h-warm:   #d85e40;
+    --h-cool:   #56a3cf;
+    --h-humid:  #4a9c58;
+    --h-dry:    #b89356;
+  }
+
+  body {
+    background:
+      radial-gradient(1200px 400px at 20% -200px, #d8e6a8 0%, transparent 60%),
+      var(--bg);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    padding: 24px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 10px; }
+
+  /* --- top bar --- */
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .topbar .brand { display: flex; align-items: baseline; gap: 10px; }
+  .topbar .brand .sub { color: var(--muted); font-size: 13px; }
+  .topbar .controls { display: flex; gap: 10px; align-items: center; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+
+  /* --- roster --- */
+  .roster-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+  .roster-summary { color: var(--muted); font-size: 13px; }
+  .habitat-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .habitat-badge.none { background: #dfe6c5; color: var(--muted); }
+  .habitat-badge[data-hab="bright"] { background: #fbe5b2; color: #875916; }
+  .habitat-badge[data-hab="dark"]   { background: #e0dcf4; color: #3e3685; }
+  .habitat-badge[data-hab="warm"]   { background: #f7cfbb; color: #a74224; }
+  .habitat-badge[data-hab="cool"]   { background: #cfe4ee; color: #2d6b88; }
+  .habitat-badge[data-hab="humid"]  { background: #cee6c9; color: #276938; }
+  .habitat-badge[data-hab="dry"]    { background: #ebd9b3; color: #7a5c16; }
+
+  .slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+  @media (max-width: 820px) { .slots { grid-template-columns: repeat(2, 1fr); } }
+  .slot {
+    background: var(--panel-2);
+    border: 1.5px dashed var(--border-strong);
+    border-radius: 12px;
+    padding: 12px;
+    min-height: 74px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 10px;
+    position: relative;
+  }
+  .slot.filled {
+    border-style: solid;
+    background: #fefdf2;
+    border-color: var(--border-strong);
+    box-shadow: inset 0 -2px 0 rgba(70, 110, 30, 0.12);
+  }
+  .slot .sprite-wrap {
+    width: 52px; height: 52px; flex-shrink: 0;
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .slot .sprite-wrap img { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; image-rendering: -moz-crisp-edges; }
+  .slot .sprite-wrap.missing { color: var(--muted); font-size: 14px; font-weight: 600; }
+  .slot .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-right: 18px; }
+  .slot .name { font-weight: 600; font-size: 15px; }
+  .slot .name .pdex {
+    display: inline-block; margin-right: 5px;
+    color: var(--muted); font-weight: 500; font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .slot .favs { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .slot .empty-label { color: var(--muted); font-size: 13px; font-style: italic; }
+
+  /* Empty slot is a click-target that focuses the search input */
+  .slot.empty { cursor: pointer; transition: background 120ms ease, border-color 120ms ease, transform 120ms ease; }
+  .slot.empty:hover { background: var(--accent-soft); border-color: var(--accent-dark); transform: translateY(-1px); }
+  .slot.empty:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .slot.empty .add-icon {
+    width: 52px; height: 52px; flex-shrink: 0;
+    background: #fff; border: 1.5px dashed var(--border-strong); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent-dark); font-size: 28px; font-weight: 600; line-height: 1;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .slot.empty:hover .add-icon { background: #fefdf2; border-color: var(--accent-dark); }
+  .slot.empty .empty-hint { font-size: 11px; color: var(--accent-dark); font-weight: 500; margin-top: 1px; }
+
+  .slot .remove {
+    position: absolute; top: 6px; right: 8px;
+    background: transparent; border: 0; color: var(--muted); cursor: pointer;
+    font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 6px;
+  }
+  .slot .remove:hover { background: #f0f1f5; color: var(--text); }
+
+  /* --- add / suggest --- */
+  .add-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; position: relative; }
+  .add-wrap { position: relative; flex: 1; min-width: 220px; }
+  .add-select {
+    width: 100%;
+    padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text); font-size: 14px;
+  }
+  .add-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(94, 166, 52, 0.22); }
+
+  .add-dropdown {
+    position: absolute;
+    top: calc(100% + 4px); left: 0; right: 0;
+    max-height: 280px; overflow-y: auto;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    z-index: 50;
+    padding: 4px;
+    display: none;
+  }
+  .add-dropdown.open { display: block; }
+  .add-dropdown .sort-row {
+    display: flex; gap: 4px; padding: 4px 6px 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+    position: sticky; top: 0; background: #fff; z-index: 1;
+  }
+  .add-dropdown .sort-row .label { color: var(--muted); font-size: 11px; align-self: center; margin-right: 4px; }
+  .add-dropdown .sort-row .sort-btn {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--border); background: #fcfbf0; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .add-dropdown .sort-row .sort-btn:hover { background: var(--accent-soft); color: var(--accent-dark); }
+  .add-dropdown .sort-row .sort-btn.on {
+    background: var(--accent); color: #fff; border-color: var(--accent-dark);
+  }
+  .add-dropdown .opt {
+    padding: 7px 10px; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    border-radius: 6px;
+  }
+  .add-dropdown .opt:hover,
+  .add-dropdown .opt.active { background: var(--accent-soft); }
+  .add-dropdown .opt .pname { font-weight: 600; font-size: 14px; }
+  .add-dropdown .opt .pname .pdex { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; margin-right: 6px; font-size: 12px; }
+  .add-dropdown .opt .phab {
+    font-size: 11px; font-weight: 600;
+    padding: 1px 7px; border-radius: 999px;
+  }
+  .add-dropdown .opt .phab[data-hab="bright"] { background: #fbe5b2; color: #875916; }
+  .add-dropdown .opt .phab[data-hab="dark"]   { background: #e0dcf4; color: #3e3685; }
+  .add-dropdown .opt .phab[data-hab="warm"]   { background: #f7cfbb; color: #a74224; }
+  .add-dropdown .opt .phab[data-hab="cool"]   { background: #cfe4ee; color: #2d6b88; }
+  .add-dropdown .opt .phab[data-hab="humid"]  { background: #cee6c9; color: #276938; }
+  .add-dropdown .opt .phab[data-hab="dry"]    { background: #ebd9b3; color: #7a5c16; }
+  .add-dropdown .empty { padding: 14px; color: var(--muted); font-size: 13px; text-align: center; }
+  .btn {
+    padding: 8px 16px; border: 1px solid var(--border-strong); background: #fffdf0;
+    border-radius: 10px; cursor: pointer; font: inherit; color: var(--text);
+    transition: background 0.12s, box-shadow 0.12s;
+  }
+  .btn:hover { background: #f3f6e0; }
+  .btn.primary {
+    background: var(--accent); color: #fff; border-color: var(--accent-dark);
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.14);
+  }
+  .btn.primary:hover { background: var(--accent-dark); }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+  .btn.ghost:hover { color: var(--text); background: rgba(255, 255, 255, 0.4); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sugg-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-soft); color: var(--accent-dark);
+    padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    cursor: pointer; border: 1px solid transparent;
+  }
+  .sugg-chip:hover { border-color: var(--accent); background: #cde3a6; }
+  .sugg-chip .pdex { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; margin-right: 2px; }
+  .sugg-chip .score { background: rgba(94, 166, 52, 0.22); padding: 1px 6px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+
+  /* --- items --- */
+  .items-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .items-count { color: var(--muted); font-size: 13px; }
+  .items-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .items-controls input[type="search"],
+  .items-controls select {
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text); font: inherit;
+  }
+  .items-controls input[type="search"] { min-width: 180px; }
+  .toggle-label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
+
+  .type-filter {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin-bottom: 10px;
+  }
+  .type-filter .type-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-right: 4px; }
+  .type-filter .chip {
+    padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border-strong); background: #fefdf2; cursor: pointer;
+    color: var(--text);
+  }
+  .type-filter .chip:hover { background: #edf2d2; }
+  .type-filter .chip.off { color: var(--muted); background: transparent; border-style: dashed; text-decoration: line-through; }
+  .type-filter .chip .pill { display: inline-block; margin-left: 6px; background: var(--accent-soft); padding: 0 7px; border-radius: 999px; font-variant-numeric: tabular-nums; font-size: 11px; color: var(--accent-dark); }
+  .type-filter .chip[data-type="Decoration"] { border-color: #c8a4d8; color: #6a3d85; }
+  .type-filter .chip[data-type="Decoration"]:hover { background: #e8d5f1; }
+  .type-filter .chip[data-type="Decoration"] .pill { background: #e8d5f1; color: #6a3d85; }
+  .type-filter .chip[data-type="Toy"] { border-color: #e8a868; color: #a0591a; }
+  .type-filter .chip[data-type="Toy"]:hover { background: #f7dcb8; }
+  .type-filter .chip[data-type="Toy"] .pill { background: #f7dcb8; color: #a0591a; }
+  .type-filter .chip[data-type="Relaxation"] { border-color: #7bbad4; color: #2d6b88; }
+  .type-filter .chip[data-type="Relaxation"]:hover { background: #d1eaf4; }
+  .type-filter .chip[data-type="Relaxation"] .pill { background: #d1eaf4; color: #2d6b88; }
+  .type-filter .chip[data-type="Road"] { border-color: #b89356; color: #7a5c16; }
+  .type-filter .chip[data-type="Road"]:hover { background: #ebd9b3; }
+  .type-filter .chip[data-type="Road"] .pill { background: #ebd9b3; color: #7a5c16; }
+  .type-filter .meta-sep { width: 1px; align-self: stretch; background: var(--border); margin: 2px 4px; }
+  .type-filter .meta-btn {
+    background: transparent; border: 0; color: var(--muted); cursor: pointer;
+    font-size: 12px; font-weight: 500; padding: 4px 8px; border-radius: 6px;
+    text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px;
+  }
+  .type-filter .meta-btn:hover { color: var(--text); background: var(--accent-soft); text-decoration: none; }
+  .type-filter .meta-btn:disabled { opacity: 0.4; cursor: default; text-decoration: none; background: transparent; }
+  .item .type-pill {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 1px 7px; border-radius: 999px;
+    background: #eee; color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .item .type-pill[data-type="Decoration"] { background: #e8d5f1; color: #6a3d85; }
+  .item .type-pill[data-type="Toy"]        { background: #f7dcb8; color: #a0591a; }
+  .item .type-pill[data-type="Relaxation"] { background: #d1eaf4; color: #2d6b88; }
+  .item .type-pill[data-type="Road"]       { background: #ebd9b3; color: #7a5c16; }
+
+  .cat-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .cat-filter .chip {
+    padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border-strong); background: #fefdf2; cursor: pointer;
+    color: var(--text);
+  }
+  .cat-filter .chip:hover { background: #edf2d2; }
+  .cat-filter .chip.off { color: var(--muted); background: transparent; border-style: dashed; text-decoration: line-through; }
+  .cat-filter .chip .pill { display: inline-block; margin-left: 6px; background: var(--accent-soft); padding: 0 7px; border-radius: 999px; font-variant-numeric: tabular-nums; font-size: 11px; color: var(--accent-dark); }
+
+  .items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px; background: #fefdf2; border: 1px solid var(--border); border-radius: 12px;
+    position: relative;
+  }
+  .item:hover { box-shadow: 0 2px 8px rgba(40, 60, 20, 0.10); border-color: var(--border-strong); }
+  .item .icon-wrap {
+    width: 44px; height: 44px; flex-shrink: 0;
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .item .icon-wrap img { width: 40px; height: 40px; object-fit: contain; }
+  .item .icon-wrap.missing { color: var(--muted); font-size: 18px; }
+  body.no-icons .item .icon-wrap { display: none; }
+
+  .item .body { flex: 1; min-width: 0; }
+  .item .name { font-weight: 600; font-size: 13.5px; line-height: 1.3; margin-bottom: 4px; word-break: break-word; }
+  .item .meta { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+  .item .cat-pill {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 2px 7px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent-dark);
+  }
+  .item .who-pill {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 2px 7px; border-radius: 999px;
+    background: #f9dcc5; color: var(--warm); border: 1px solid #edc8a5;
+  }
+  .item .who-pill.all { background: #cfe6c8; color: var(--green); border-color: #a8cea0; }
+
+  .item .badges { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+  .item .badge-multi {
+    font-size: 10px; font-weight: 700;
+    padding: 1px 7px; border-radius: 999px;
+    background: #e4dbf4; color: var(--purple);
+    letter-spacing: 0.02em;
+  }
+
+  /* small bits */
+  .empty-state {
+    color: var(--muted); padding: 40px 20px; text-align: center; font-size: 14px;
+    border: 1px dashed var(--border); border-radius: 10px; background: var(--panel-2);
+  }
+  .hint { color: var(--muted); font-size: 12px; }
+  kbd {
+    background: #f0f1f5; border: 1px solid var(--border); padding: 1px 5px;
+    border-radius: 4px; font-size: 11px; font-family: ui-monospace, SFMono-Regular, monospace;
+  }
+  a.source { color: var(--muted); text-decoration: none; font-size: 12px; }
+  a.source:hover { text-decoration: underline; color: var(--accent); }
+  details > summary { cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 600; list-style: none; }
+  details > summary::before { content: "▸ "; display: inline-block; transition: transform 0.15s; }
+  details[open] > summary::before { content: "▾ "; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>🏠 Pokopia Habitat Planner</h1>
+    <span class="sub" id="meta-counts"></span>
+  </div>
+  <div class="controls">
+    <label class="toggle-label">
+      <input type="checkbox" id="toggle-icons" checked> Show icons
+    </label>
+  </div>
+</div>
+
+<!-- HOUSE -->
+<div class="panel">
+  <div class="roster-top">
+    <div>
+      <h2 style="display: inline-block; margin-right: 10px;">House</h2>
+      <span class="roster-summary" id="roster-summary"></span>
+    </div>
+    <div>
+      <span class="habitat-badge none" id="habitat-badge">any habitat</span>
+    </div>
+  </div>
+
+  <div class="slots" id="slots"></div>
+
+  <div class="add-row">
+    <div class="add-wrap">
+      <input class="add-select" id="add-input"
+             placeholder="start typing a Pokémon name…"
+             autocomplete="off" spellcheck="false" role="combobox"
+             aria-autocomplete="list" aria-expanded="false" aria-controls="add-dropdown">
+      <div class="add-dropdown" id="add-dropdown" role="listbox"></div>
+    </div>
+    <button class="btn primary" id="add-btn">Add</button>
+    <button class="btn ghost" id="clear-btn">Clear house</button>
+  </div>
+  <div class="hint" id="add-hint" style="margin-top:-4px; margin-bottom: 6px;"></div>
+
+  <div id="suggestions-wrap" style="display:none;">
+    <h2 style="margin-top: 6px;">Suggested roommates (ranked by shared favourites)</h2>
+    <div class="suggestions" id="suggestions"></div>
+  </div>
+</div>
+
+<!-- ITEMS -->
+<div class="panel" id="items-panel">
+  <div class="items-head">
+    <div>
+      <h2 style="display: inline-block; margin-right: 10px;">Items</h2>
+      <span class="items-count" id="items-count"></span>
+    </div>
+    <div class="items-controls">
+      <input type="search" id="search-items" placeholder="search items…">
+      <select id="sort-items">
+        <option value="relevance">Sort: most liked → categories → name</option>
+        <option value="categories">Sort: most categories</option>
+        <option value="likes">Sort: liked by most Pokémon</option>
+        <option value="name">Sort: name (A → Z)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="type-filter" id="type-filter"></div>
+  <div class="cat-filter" id="cat-filter"></div>
+
+  <div id="items-grid" class="items-grid"></div>
+
+  <div id="empty-state" class="empty-state" style="display:none;"></div>
+</div>
+
+<p class="hint" style="text-align:center; margin-top: 8px;">
+  Data scraped from <a class="source" href="https://www.serebii.net/pokemonpokopia/" target="_blank" rel="noopener">serebii.net/pokemonpokopia</a>
+  · generated <span id="gen-date"></span>
+</p>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  const DATA = window.POKOPIA_DATA;
+  if (!DATA) {
+    document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#c00;font-family:sans-serif">Could not load data.js — make sure it is next to index.html.</div>';
+    return;
+  }
+
+  // Index lookups
+  const POKEMON = DATA.pokemon;
+  const CATS = DATA.categories;
+  const ITEMS = DATA.items;
+
+  const pokeBySlug = new Map(POKEMON.map(p => [p.slug, p]));
+  const catBySlug  = new Map(CATS.map(c => [c.slug, c]));
+  const itemBySlug = new Map(ITEMS.map(i => [i.slug, i]));
+
+  const habSlug = p => (p.habitat_slug || String(p.habitat || '').toLowerCase());
+
+  // ----- state -----
+  const STATE = {
+    roster: [],            // array of pokemon slugs, max 4
+    showIcons: true,
+    search: "",
+    sort: "relevance",
+    categoryFilter: null,  // Set of category slugs the user has visible; null = "auto" (all roster cats)
+    typeFilter: null,      // Set of item-type strings the user has visible; null = "auto" (all types)
+    dropdownSort: "name",  // "name" (A→Z) or "number" (Pokédex #)
+  };
+
+  const UNTAGGED = "(untagged)";
+  function itemType(it) { return it.type || UNTAGGED; }
+
+  function comparePokemon(a, b, mode) {
+    if (mode === "number") {
+      const na = parseInt(a.number, 10);
+      const nb = parseInt(b.number, 10);
+      if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+      // fall through to name if numbers missing or equal (forms share numbers)
+    }
+    return a.name.localeCompare(b.name);
+  }
+
+  function rosterHabitat() {
+    if (!STATE.roster.length) return null;
+    return habSlug(pokeBySlug.get(STATE.roster[0]));
+  }
+
+  function rosterCategories() {
+    const s = new Set();
+    for (const slug of STATE.roster) {
+      for (const c of pokeBySlug.get(slug).favorites) s.add(c);
+    }
+    return s;
+  }
+
+  // For a given candidate pokemon, how many of its favorites overlap with the current roster's union of favorites?
+  function overlapScore(candidate) {
+    const rosterCats = rosterCategories();
+    if (!rosterCats.size) return candidate.favorites.length;
+    let n = 0;
+    for (const c of candidate.favorites) if (rosterCats.has(c)) n++;
+    return n;
+  }
+
+  function compatiblePokemon() {
+    const hab = rosterHabitat();
+    return POKEMON.filter(p => {
+      if (STATE.roster.includes(p.slug)) return false;
+      if (hab && habSlug(p) !== hab) return false;
+      return true;
+    });
+  }
+
+  // ----- rendering -----
+  const $ = (id) => document.getElementById(id);
+
+  function renderRoster() {
+    const slotsEl = $("slots");
+    slotsEl.innerHTML = "";
+    for (let i = 0; i < 4; i++) {
+      const slug = STATE.roster[i];
+      const div = document.createElement("div");
+      div.className = "slot" + (slug ? " filled" : "");
+      if (slug) {
+        const p = pokeBySlug.get(slug);
+        const favNames = p.favorites.map(c => catBySlug.get(c)?.name || c).join(" · ");
+        const spriteHTML = p.sprite
+          ? `<div class="sprite-wrap"><img loading="lazy" src="${encodeURI(p.sprite)}" alt=""></div>`
+          : `<div class="sprite-wrap missing" title="no sprite">?</div>`;
+        const numHTML = p.number ? `<span class="pdex">#${escapeHTML(p.number)}</span>` : "";
+        div.innerHTML = `
+          <button class="remove" title="remove" data-remove="${slug}">×</button>
+          ${spriteHTML}
+          <div class="text">
+            <div class="name">${numHTML}${escapeHTML(p.name)}</div>
+            <div class="favs">${escapeHTML(favNames)}</div>
+          </div>
+        `;
+      } else {
+        div.classList.add("empty");
+        div.setAttribute("role", "button");
+        div.setAttribute("tabindex", "0");
+        div.setAttribute("aria-label", `Add a Pokémon to slot ${i + 1}`);
+        div.innerHTML = `
+          <div class="add-icon" aria-hidden="true">+</div>
+          <div class="text">
+            <div class="empty-label">empty slot ${i + 1}</div>
+            <div class="empty-hint">click to add</div>
+          </div>
+        `;
+      }
+      slotsEl.appendChild(div);
+    }
+    slotsEl.querySelectorAll("[data-remove]").forEach(el => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        removePokemon(el.getAttribute("data-remove"));
+      });
+    });
+    // Clicking an empty slot focuses the search input (which opens the dropdown).
+    const focusAddInput = () => {
+      const inp = $("add-input");
+      if (inp) { inp.focus(); inp.select && inp.select(); }
+    };
+    slotsEl.querySelectorAll(".slot.empty").forEach(el => {
+      el.addEventListener("click", focusAddInput);
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          focusAddInput();
+        }
+      });
+    });
+
+    // habitat badge
+    const badge = $("habitat-badge");
+    const hab = rosterHabitat();
+    if (hab) {
+      const pretty = hab.charAt(0).toUpperCase() + hab.slice(1);
+      badge.textContent = pretty + " habitat";
+      badge.classList.remove("none");
+      badge.setAttribute("data-hab", hab);
+    } else {
+      badge.textContent = "any habitat";
+      badge.classList.add("none");
+      badge.removeAttribute("data-hab");
+    }
+
+    // summary
+    const summary = $("roster-summary");
+    if (STATE.roster.length === 0) {
+      summary.textContent = "Pick a Pokémon to begin.";
+    } else {
+      const names = STATE.roster.map(s => pokeBySlug.get(s).name).join(" + ");
+      const rc = rosterCategories();
+      summary.textContent = `${names} — ${rc.size} favourite categor${rc.size === 1 ? "y" : "ies"} covered`;
+    }
+  }
+
+  // ---- custom dropdown state ----
+  const DD = {
+    activeIndex: -1,   // highlighted option in the current filtered list
+    filtered: [],      // cached filtered pool for keyboard navigation
+  };
+
+  function renderAddSelect() {
+    const input = $("add-input");
+    const full = STATE.roster.length >= 4;
+    input.disabled = full;
+    $("add-btn").disabled = full;
+
+    const hint = $("add-hint");
+    if (full) {
+      hint.textContent = "House is full (4/4). Remove a Pokémon to swap in another.";
+    } else if (STATE.roster.length === 0) {
+      hint.textContent = `${compatiblePokemon().length} Pokémon available — any habitat.`;
+    } else {
+      const hab = rosterHabitat();
+      const habPretty = hab ? hab[0].toUpperCase() + hab.slice(1) : "";
+      hint.textContent = `${compatiblePokemon().length} ${habPretty}-habitat Pokémon available.`;
+    }
+    input.value = "";
+    closeDropdown();
+  }
+
+  function filterPool(query) {
+    const pool = compatiblePokemon();
+    pool.sort((a, b) => comparePokemon(a, b, STATE.dropdownSort));
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return pool;
+    // prefix matches first, then contains — preserving the chosen sort inside each group
+    const prefix = pool.filter(p => p.name.toLowerCase().startsWith(q));
+    const rest = pool.filter(p => !p.name.toLowerCase().startsWith(q) && p.name.toLowerCase().includes(q));
+    return [...prefix, ...rest];
+  }
+
+  function renderDropdown() {
+    const dd = $("add-dropdown");
+    const input = $("add-input");
+    const query = input.value;
+    DD.filtered = filterPool(query);
+    // reset highlight to first row on content change
+    if (DD.activeIndex >= DD.filtered.length) DD.activeIndex = -1;
+    if (DD.filtered.length && DD.activeIndex < 0) DD.activeIndex = 0;
+
+    dd.innerHTML = "";
+
+    // Sort toggle row — always present, even when empty
+    const sortRow = document.createElement("div");
+    sortRow.className = "sort-row";
+    sortRow.innerHTML = `
+      <span class="label">Sort:</span>
+      <button type="button" class="sort-btn${STATE.dropdownSort === "name" ? " on" : ""}" data-sort="name">A → Z</button>
+      <button type="button" class="sort-btn${STATE.dropdownSort === "number" ? " on" : ""}" data-sort="number">#001 →</button>
+    `;
+    sortRow.querySelectorAll(".sort-btn").forEach(btn => {
+      btn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const mode = btn.getAttribute("data-sort");
+        if (STATE.dropdownSort !== mode) {
+          STATE.dropdownSort = mode;
+          renderDropdown();
+          scrollActiveIntoView();
+        }
+      });
+    });
+    dd.appendChild(sortRow);
+
+    if (!DD.filtered.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = query
+        ? `No Pokémon matching "${query}"`
+        : "No compatible Pokémon available.";
+      dd.appendChild(empty);
+      return;
+    }
+
+    DD.filtered.forEach((p, i) => {
+      const el = document.createElement("div");
+      el.className = "opt" + (i === DD.activeIndex ? " active" : "");
+      el.setAttribute("role", "option");
+      el.setAttribute("data-slug", p.slug);
+      const hab = (p.habitat_slug || String(p.habitat || "").toLowerCase());
+      const numHTML = p.number ? `<span class="pdex">#${escapeHTML(p.number)}</span>` : "";
+      el.innerHTML = `
+        <span class="pname">${numHTML}${escapeHTML(p.name)}</span>
+        <span class="phab" data-hab="${escapeHTML(hab)}">${escapeHTML(p.habitat || "")}</span>
+      `;
+      // mousedown fires BEFORE input blur, so this keeps the click reliable
+      el.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        addPokemon(p.slug);
+        input.value = "";
+        closeDropdown();
+        input.focus();
+      });
+      dd.appendChild(el);
+    });
+  }
+
+  function openDropdown() {
+    const dd = $("add-dropdown");
+    const input = $("add-input");
+    if (input.disabled) return;
+    renderDropdown();
+    dd.classList.add("open");
+    input.setAttribute("aria-expanded", "true");
+    scrollActiveIntoView();
+  }
+
+  function closeDropdown() {
+    const dd = $("add-dropdown");
+    const input = $("add-input");
+    dd.classList.remove("open");
+    input.setAttribute("aria-expanded", "false");
+    DD.activeIndex = -1;
+  }
+
+  function scrollActiveIntoView() {
+    const dd = $("add-dropdown");
+    const el = dd.querySelector(".opt.active");
+    if (!el) return;
+    const top = el.offsetTop;
+    const bot = top + el.offsetHeight;
+    if (top < dd.scrollTop) dd.scrollTop = top;
+    else if (bot > dd.scrollTop + dd.clientHeight) dd.scrollTop = bot - dd.clientHeight;
+  }
+
+  function moveHighlight(delta) {
+    if (!DD.filtered.length) return;
+    DD.activeIndex = (DD.activeIndex + delta + DD.filtered.length) % DD.filtered.length;
+    // re-render active styling only
+    const dd = $("add-dropdown");
+    dd.querySelectorAll(".opt").forEach((el, i) => {
+      el.classList.toggle("active", i === DD.activeIndex);
+    });
+    scrollActiveIntoView();
+  }
+
+  // Resolve user input (typed name or partial) to a compatible pokemon slug.
+  function resolveInputToSlug(raw) {
+    if (!raw) return null;
+    const q = raw.trim().toLowerCase();
+    if (!q) return null;
+    const pool = compatiblePokemon();
+    // exact name match
+    let hit = pool.find(p => p.name.toLowerCase() === q);
+    if (hit) return hit.slug;
+    // exact slug match (user typed the slug)
+    hit = pool.find(p => p.slug === q);
+    if (hit) return hit.slug;
+    // prefix match (unique only — don't guess if ambiguous)
+    const prefix = pool.filter(p => p.name.toLowerCase().startsWith(q));
+    if (prefix.length === 1) return prefix[0].slug;
+    // contains match (unique only)
+    const contains = pool.filter(p => p.name.toLowerCase().includes(q));
+    if (contains.length === 1) return contains[0].slug;
+    return null;
+  }
+
+  function renderSuggestions() {
+    const wrap = $("suggestions-wrap");
+    const host = $("suggestions");
+    host.innerHTML = "";
+    if (STATE.roster.length === 0 || STATE.roster.length >= 4) {
+      wrap.style.display = "none";
+      return;
+    }
+    const pool = compatiblePokemon();
+    const rostCats = rosterCategories();
+    const scored = pool
+      .map(p => ({ p, score: overlapScore(p) }))
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.p.name.localeCompare(b.p.name);
+      });
+    // show top 8 by shared-cat score, tie-broken by name
+    const top = scored.slice(0, 8);
+    top.forEach(({ p, score }) => {
+      const chip = document.createElement("span");
+      chip.className = "sugg-chip";
+      const numHTML = p.number ? `<span class="pdex">#${escapeHTML(p.number)}</span>` : "";
+      chip.innerHTML = `${numHTML}${escapeHTML(p.name)} <span class="score">${score}/${rostCats.size} shared</span>`;
+      chip.title = "Favourites: " + p.favorites.map(c => catBySlug.get(c)?.name || c).join(", ");
+      chip.addEventListener("click", () => addPokemon(p.slug));
+      host.appendChild(chip);
+    });
+    wrap.style.display = "";
+  }
+
+  // Items: build a view model that includes per-item relevance.
+  function computeItemView() {
+    const rosterCats = rosterCategories();
+    const rosterSet = new Set(STATE.roster);
+
+    // A pokemon "likes" an item if any of the pokemon's favorite categories is in the item's categories.
+    const likedByMap = new Map(); // itemSlug -> array of pokemon slugs
+    for (const slug of STATE.roster) {
+      const p = pokeBySlug.get(slug);
+      const pfavs = new Set(p.favorites);
+      for (const it of ITEMS) {
+        for (const c of it.categories) {
+          if (pfavs.has(c)) {
+            if (!likedByMap.has(it.slug)) likedByMap.set(it.slug, []);
+            const arr = likedByMap.get(it.slug);
+            if (!arr.includes(slug)) arr.push(slug);
+            break;
+          }
+        }
+      }
+    }
+
+    const rows = [];
+    for (const it of ITEMS) {
+      // categories of this item that are in the roster's union of favorites
+      const matchingCats = it.categories.filter(c => rosterCats.has(c));
+      if (rosterCats.size && matchingCats.length === 0) continue;
+      const likedBy = likedByMap.get(it.slug) || [];
+      rows.push({
+        item: it,
+        matchingCats,            // category slugs
+        likedBy,                 // pokemon slugs
+        catCount: matchingCats.length,
+        likeCount: likedBy.length,
+      });
+    }
+    return rows;
+  }
+
+  function renderCategoryFilter(rows) {
+    const host = $("cat-filter");
+    host.innerHTML = "";
+
+    const rosterCats = [...rosterCategories()];
+    if (!rosterCats.length) return;
+
+    // count items per category (within rows — rows already limited to rosterCats)
+    const countPerCat = new Map();
+    for (const r of rows) {
+      for (const c of r.matchingCats) {
+        countPerCat.set(c, (countPerCat.get(c) || 0) + 1);
+      }
+    }
+
+    rosterCats.sort((a, b) => {
+      const ca = catBySlug.get(a)?.name || a;
+      const cb = catBySlug.get(b)?.name || b;
+      return ca.localeCompare(cb);
+    });
+
+    // if user hasn't set a filter, all on
+    if (!STATE.categoryFilter) STATE.categoryFilter = new Set(rosterCats);
+
+    for (const c of rosterCats) {
+      const name = catBySlug.get(c)?.name || c;
+      const n = countPerCat.get(c) || 0;
+      const on = STATE.categoryFilter.has(c);
+      const chip = document.createElement("button");
+      chip.className = "chip" + (on ? "" : " off");
+      chip.innerHTML = `${escapeHTML(name)} <span class="pill">${n}</span>`;
+      chip.addEventListener("click", () => {
+        if (STATE.categoryFilter.has(c)) STATE.categoryFilter.delete(c);
+        else STATE.categoryFilter.add(c);
+        renderAll();
+      });
+      host.appendChild(chip);
+    }
+  }
+
+  function renderTypeFilter(rows) {
+    const host = $("type-filter");
+    host.innerHTML = "";
+
+    // count items per type in the current (pre-type-filter) rows
+    const countPerType = new Map();
+    for (const r of rows) {
+      const t = itemType(r.item);
+      countPerType.set(t, (countPerType.get(t) || 0) + 1);
+    }
+
+    // preferred order: Decoration, Toy, Relaxation, Road, then anything else, then (untagged)
+    const order = ["Decoration", "Toy", "Relaxation", "Road"];
+    const knownInData = [...countPerType.keys()];
+    const sortedTypes = [
+      ...order.filter(t => knownInData.includes(t)),
+      ...knownInData.filter(t => !order.includes(t) && t !== UNTAGGED).sort(),
+      ...(knownInData.includes(UNTAGGED) ? [UNTAGGED] : []),
+    ];
+    if (!sortedTypes.length) return;
+
+    // default: all on
+    if (!STATE.typeFilter) STATE.typeFilter = new Set(sortedTypes);
+
+    const label = document.createElement("span");
+    label.className = "type-label";
+    label.textContent = "Type:";
+    host.appendChild(label);
+
+    for (const t of sortedTypes) {
+      const n = countPerType.get(t) || 0;
+      const on = STATE.typeFilter.has(t);
+      const chip = document.createElement("button");
+      chip.className = "chip" + (on ? "" : " off");
+      if (t !== UNTAGGED) chip.setAttribute("data-type", t);
+      const displayName = t === UNTAGGED ? "Untagged" : t;
+      chip.innerHTML = `${escapeHTML(displayName)} <span class="pill">${n}</span>`;
+      chip.title = `Shift-click to show only ${displayName}`;
+      chip.addEventListener("click", (e) => {
+        if (e.shiftKey) {
+          // Shift-click = show only this type (turn everything else off)
+          STATE.typeFilter = new Set([t]);
+        } else if (STATE.typeFilter.has(t)) {
+          STATE.typeFilter.delete(t);
+        } else {
+          STATE.typeFilter.add(t);
+        }
+        renderItems();
+      });
+      host.appendChild(chip);
+    }
+
+    // Utility buttons: deselect-all (so the user can then click one) and select-all.
+    const sep = document.createElement("span");
+    sep.className = "meta-sep";
+    host.appendChild(sep);
+
+    const noneBtn = document.createElement("button");
+    noneBtn.className = "meta-btn";
+    noneBtn.type = "button";
+    noneBtn.textContent = "Deselect all";
+    noneBtn.title = "Turn off every type, then click one to show only that type";
+    noneBtn.disabled = STATE.typeFilter.size === 0;
+    noneBtn.addEventListener("click", () => {
+      STATE.typeFilter = new Set();
+      renderItems();
+    });
+    host.appendChild(noneBtn);
+
+    const allBtn = document.createElement("button");
+    allBtn.className = "meta-btn";
+    allBtn.type = "button";
+    allBtn.textContent = "Select all";
+    allBtn.disabled = STATE.typeFilter.size === sortedTypes.length;
+    allBtn.addEventListener("click", () => {
+      STATE.typeFilter = new Set(sortedTypes);
+      renderItems();
+    });
+    host.appendChild(allBtn);
+  }
+
+  function renderItems() {
+    let rows = computeItemView();
+
+    // drive the type filter off the unfiltered set so counts stay stable
+    renderTypeFilter(rows);
+
+    // filter by item type
+    if (STATE.typeFilter) {
+      rows = rows.filter(r => STATE.typeFilter.has(itemType(r.item)));
+    }
+
+    renderCategoryFilter(rows);
+
+    // filter by category selection
+    if (STATE.categoryFilter && STATE.roster.length) {
+      rows = rows.filter(r => r.matchingCats.some(c => STATE.categoryFilter.has(c)));
+    }
+
+    // filter by search
+    const q = STATE.search.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter(r => r.item.name.toLowerCase().includes(q));
+    }
+
+    // sort
+    rows.sort((a, b) => {
+      if (STATE.sort === "name") return a.item.name.localeCompare(b.item.name);
+      if (STATE.sort === "likes") {
+        if (b.likeCount !== a.likeCount) return b.likeCount - a.likeCount;
+        if (b.catCount !== a.catCount) return b.catCount - a.catCount;
+        return a.item.name.localeCompare(b.item.name);
+      }
+      if (STATE.sort === "categories") {
+        if (b.catCount !== a.catCount) return b.catCount - a.catCount;
+        if (b.likeCount !== a.likeCount) return b.likeCount - a.likeCount;
+        return a.item.name.localeCompare(b.item.name);
+      }
+      // relevance
+      if (b.likeCount !== a.likeCount) return b.likeCount - a.likeCount;
+      if (b.catCount !== a.catCount) return b.catCount - a.catCount;
+      return a.item.name.localeCompare(b.item.name);
+    });
+
+    // render
+    const host = $("items-grid");
+    host.innerHTML = "";
+    const empty = $("empty-state");
+    $("items-count").textContent = rows.length
+      ? `${rows.length} item${rows.length === 1 ? "" : "s"}`
+      : "";
+
+    if (!rows.length) {
+      empty.style.display = "";
+      if (!STATE.roster.length) {
+        empty.textContent = "Add a Pokémon to see items.";
+      } else {
+        empty.textContent = "No items match this search or filter.";
+      }
+      return;
+    }
+    empty.style.display = "none";
+
+    for (const r of rows) {
+      const el = document.createElement("div");
+      el.className = "item";
+
+      const iconSrc = r.item.icon || "";
+      const iconHTML = iconSrc
+        ? `<div class="icon-wrap"><img loading="lazy" src="${encodeURI(iconSrc)}" alt=""></div>`
+        : `<div class="icon-wrap missing" title="no icon">—</div>`;
+
+      const catPills = r.matchingCats.map(c => {
+        const name = catBySlug.get(c)?.name || c;
+        return `<span class="cat-pill" title="${escapeHTML(name)}">${escapeHTML(name)}</span>`;
+      }).join("");
+
+      const typeVal = r.item.type;
+      const typePill = typeVal
+        ? `<span class="type-pill" data-type="${escapeHTML(typeVal)}">${escapeHTML(typeVal)}</span>`
+        : "";
+
+      let whoPill = "";
+      // The "liked by" pill is only meaningful with 2+ pokemon in the house —
+      // with a single roster member, every visible item is trivially liked by them.
+      if (STATE.roster.length >= 2) {
+        const liked = r.likedBy.map(s => pokeBySlug.get(s).name);
+        const isAll = r.likeCount === STATE.roster.length;
+        const label = isAll
+          ? `Liked by all ${STATE.roster.length} 🔥`
+          : `Liked by ${r.likeCount}/${STATE.roster.length}`;
+        whoPill = `<span class="who-pill ${isAll ? "all" : ""}" title="${escapeHTML(liked.join(", "))}">${label}</span>`;
+      }
+
+      const multiCat = r.catCount > 1
+        ? `<span class="badge-multi" title="Fits ${r.catCount} of your roster's favourite categories">${r.catCount} cats</span>`
+        : "";
+
+      el.innerHTML = `
+        ${iconHTML}
+        <div class="body">
+          <div class="name">${escapeHTML(r.item.name)}</div>
+          <div class="meta">
+            ${whoPill}
+            ${typePill}
+            ${catPills}
+          </div>
+        </div>
+        <div class="badges">${multiCat}</div>
+      `;
+      host.appendChild(el);
+    }
+  }
+
+  function renderAll() {
+    document.body.classList.toggle("no-icons", !STATE.showIcons);
+    renderRoster();
+    renderAddSelect();
+    renderSuggestions();
+    renderItems();
+  }
+
+  // ----- actions -----
+  function addPokemon(slug) {
+    if (!slug) return;
+    if (STATE.roster.length >= 4) return;
+    if (STATE.roster.includes(slug)) return;
+
+    const p = pokeBySlug.get(slug);
+    if (!p) return;
+    const hab = rosterHabitat();
+    if (hab && habSlug(p) !== hab) {
+      alert(`${p.name} is ${p.habitat} habitat, but your house is ${hab}. Same ideal habitat required.`);
+      return;
+    }
+    STATE.roster.push(slug);
+    // reset category filter so new categories are auto-included
+    STATE.categoryFilter = null;
+    STATE.typeFilter = null;
+    renderAll();
+    persistState();
+  }
+
+  function removePokemon(slug) {
+    STATE.roster = STATE.roster.filter(s => s !== slug);
+    STATE.categoryFilter = null;
+    STATE.typeFilter = null;
+    renderAll();
+    persistState();
+  }
+
+  function clearRoster() {
+    STATE.roster = [];
+    STATE.categoryFilter = null;
+    STATE.typeFilter = null;
+    renderAll();
+    persistState();
+  }
+
+  // tiny in-memory persistence within a session (sessionStorage unsupported per platform rules, so skip)
+  function persistState() { /* no-op, session only */ }
+
+  // ----- helpers -----
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[c]);
+  }
+
+  // ----- events -----
+  function tryAddFromInput() {
+    const input = $("add-input");
+    // If the user has highlighted a dropdown row, use that — it's unambiguous.
+    if (DD.filtered.length && DD.activeIndex >= 0) {
+      const p = DD.filtered[DD.activeIndex];
+      addPokemon(p.slug);
+      input.value = "";
+      closeDropdown();
+      input.focus();
+      return;
+    }
+    const slug = resolveInputToSlug(input.value);
+    if (!slug) {
+      const hint = $("add-hint");
+      const prev = hint.textContent;
+      hint.textContent = `No match for "${input.value}" — try a more specific name.`;
+      hint.style.color = "#c0392b";
+      setTimeout(() => {
+        hint.style.color = "";
+        hint.textContent = prev;
+      }, 1800);
+      return;
+    }
+    addPokemon(slug);
+    input.value = "";
+    closeDropdown();
+    input.focus();
+  }
+
+  $("add-btn").addEventListener("click", tryAddFromInput);
+
+  $("add-input").addEventListener("focus", openDropdown);
+  $("add-input").addEventListener("input", () => {
+    openDropdown(); // renders with current query
+  });
+  $("add-input").addEventListener("keydown", (e) => {
+    const dd = $("add-dropdown");
+    const isOpen = dd.classList.contains("open");
+    switch (e.key) {
+      case "ArrowDown":
+        if (!isOpen) openDropdown();
+        else moveHighlight(1);
+        e.preventDefault();
+        break;
+      case "ArrowUp":
+        if (!isOpen) openDropdown();
+        else moveHighlight(-1);
+        e.preventDefault();
+        break;
+      case "Enter":
+        e.preventDefault();
+        tryAddFromInput();
+        break;
+      case "Escape":
+        if (isOpen) { closeDropdown(); e.preventDefault(); }
+        break;
+      case "Tab":
+        closeDropdown();
+        break;
+    }
+  });
+  // Close dropdown when clicking outside the add widget
+  document.addEventListener("mousedown", (e) => {
+    const wrap = document.querySelector(".add-wrap");
+    if (!wrap) return;
+    if (!wrap.contains(e.target)) closeDropdown();
+  });
+  $("clear-btn").addEventListener("click", () => {
+    if (!STATE.roster.length) return;
+    if (confirm("Clear all Pokémon from the house?")) clearRoster();
+  });
+  $("toggle-icons").addEventListener("change", (e) => {
+    STATE.showIcons = e.target.checked;
+    document.body.classList.toggle("no-icons", !STATE.showIcons);
+  });
+  $("search-items").addEventListener("input", (e) => {
+    STATE.search = e.target.value;
+    renderItems();
+  });
+  $("sort-items").addEventListener("change", (e) => {
+    STATE.sort = e.target.value;
+    renderItems();
+  });
+
+  // initial meta
+  $("meta-counts").textContent = `${POKEMON.length} Pokémon · ${CATS.length} categories · ${ITEMS.length} items`;
+  const g = DATA.generated_at || "";
+  $("gen-date").textContent = g ? g.replace("T", " ").replace("Z", " UTC") : "(unknown date)";
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

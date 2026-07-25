@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Case study: how I built this portfolio site collaboratively with an AI agent. Brief, process, decisions, and tradeoffs." />
+  <meta name="theme-color" content="#0a0f1a" />
+
+  <meta property="og:title" content="Portfolio Site — Built with AI · Case Study" />
+  <meta property="og:description" content="The brief, the collaboration model, and what I learned shipping a portfolio with an AI agent as pair." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://danielapatricio.github.io/projects/portfolio-site.html" />
+  <meta property="og:image" content="https://danielapatricio.github.io/assets/linkedin-featured-dark.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Portfolio Site — Built with AI · Case Study" />
+  <meta name="twitter:description" content="The brief, the collaboration model, and what I learned shipping a portfolio with an AI agent as pair." />
+  <meta name="twitter:image" content="https://danielapatricio.github.io/assets/linkedin-featured-dark.png" />
+
+  <title>Portfolio Site — Case Study · Daniela Patrício</title>
+
+  <script>
+  (function() {
+    try {
+      var saved = localStorage.getItem("dp-theme");
+      var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch (e) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230a0f1a'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='ui-monospace,Menlo,monospace' font-weight='700' font-size='14' fill='%2322d3ee'>dp</text></svg>" />
+
+  <style>
+  :root, :root[data-theme="dark"] {
+    --bg-0: #070b14; --bg-1: #0a0f1a; --bg-2: #0f1624; --bg-3: #141d30;
+    --surface: #111826; --surface-hi: #1a2336;
+    --border: rgba(120, 160, 210, 0.12); --border-hi: rgba(120, 180, 230, 0.25);
+    --text: #e7ecf4; --text-dim: #9aa7bd; --text-mute: #6b7891;
+    --primary: #22d3ee; --primary-hi: #67e8f9; --primary-dim: #0891b2;
+    --primary-glow: rgba(34, 211, 238, 0.18);
+    --accent-2: #a78bfa; --accent-3: #34d399; --accent-4: #fbbf24;
+    --success: #10b981;
+    --grid-line: rgba(120, 160, 210, 0.05);
+    --title-grad: linear-gradient(180deg, #ffffff 0%, #b7c3d8 100%);
+    --strong-color: #f2f6fc;
+    --nav-bg: rgba(7, 11, 20, 0.7);
+    --footer-bg: rgba(0, 0, 0, 0.2);
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --radius: 12px; --radius-lg: 18px;
+    --max: 880px; --pad: clamp(1.25rem, 2vw, 2rem);
+  }
+  :root[data-theme="light"] {
+    --bg-0: #ffffff; --bg-1: #f8fafc; --bg-2: #f1f5f9; --bg-3: #e2e8f0;
+    --surface: #ffffff; --surface-hi: #f8fafc;
+    --border: rgba(15, 22, 36, 0.10); --border-hi: rgba(15, 22, 36, 0.20);
+    --text: #0f1624; --text-dim: #475569; --text-mute: #6b7280;
+    --primary: #0891b2; --primary-hi: #0e7490; --primary-dim: #22d3ee;
+    --primary-glow: rgba(8, 145, 178, 0.14);
+    --accent-2: #7c3aed; --accent-3: #059669; --accent-4: #d97706;
+    --success: #10b981;
+    --grid-line: rgba(15, 22, 36, 0.04);
+    --title-grad: linear-gradient(180deg, #0f1624 0%, #475569 100%);
+    --strong-color: #0f1624;
+    --nav-bg: rgba(255, 255, 255, 0.78);
+    --footer-bg: rgba(15, 22, 36, 0.03);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;min-height:100vh;font-family:var(--font-sans);font-size:16px;line-height:1.7;color:var(--text);background:var(--bg-0);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  img,svg{display:block;max-width:100%}
+  a{color:var(--primary-hi);text-decoration:none;transition:color .2s}
+  a:hover{color:var(--primary)}
+  ul,ol{padding:0;margin:0;list-style:none}
+  h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+  strong{color:var(--strong-color);font-weight:600}
+  em{color:var(--text);font-style:italic}
+  .mono{font-family:var(--font-mono);font-feature-settings:"liga" 0,"calt" 0}
+
+  .bg-grid{position:fixed;inset:0;z-index:-2;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:64px 64px;-webkit-mask-image:radial-gradient(ellipse at 50% 0%,black 30%,transparent 80%);mask-image:radial-gradient(ellipse at 50% 0%,black 30%,transparent 80%)}
+  .bg-glow{position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:900px;height:600px;z-index:-1;background:radial-gradient(closest-side,var(--primary-glow),transparent 70%);filter:blur(40px);pointer-events:none}
+
+  .nav{position:sticky;top:0;z-index:50;-webkit-backdrop-filter:saturate(160%) blur(10px);backdrop-filter:saturate(160%) blur(10px);background:var(--nav-bg);border-bottom:1px solid var(--border)}
+  .nav-inner{max-width:1200px;margin:0 auto;padding:.9rem var(--pad);display:flex;align-items:center;justify-content:space-between;gap:2rem}
+  .nav-logo{display:inline-flex;align-items:baseline;font-family:var(--font-mono);font-weight:600;color:var(--text);font-size:1.1rem}
+  .logo-mark{color:var(--primary)}
+  .nav-back{font-family:var(--font-mono);font-size:.9rem;color:var(--text-dim);display:inline-flex;align-items:center;gap:.4rem}
+  .nav-back:hover{color:var(--primary-hi)}
+
+  article{max-width:var(--max);margin:0 auto;padding:clamp(2.5rem,6vw,4rem) var(--pad) 4rem}
+
+  .article-kicker{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .75rem;border:1px solid rgba(34,211,238,.35);border-radius:999px;background:rgba(34,211,238,.06);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--primary-hi);margin-bottom:1.25rem}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.2);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+
+  h1.title{font-size:clamp(2rem,4.5vw,3.25rem);font-weight:700;letter-spacing:-.03em;background:var(--title-grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:.75rem}
+  .subtitle{font-size:1.1rem;color:var(--text-dim);max-width:60ch;margin-bottom:2rem}
+
+  .meta-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+  .meta-chip{font-family:var(--font-mono);font-size:.75rem;padding:.3rem .65rem;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);background:rgba(255,255,255,.02)}
+  .meta-chip.primary{border-color:rgba(34,211,238,.35);color:var(--primary-hi);background:rgba(34,211,238,.08)}
+  .meta-chip.accent{border-color:rgba(167,139,250,.35);color:var(--accent-2);background:rgba(167,139,250,.08)}
+
+  h2.h{font-size:clamp(1.4rem,2.4vw,1.75rem);margin:3rem 0 1rem;color:var(--text);position:relative;padding-left:1rem}
+  h2.h::before{content:"";position:absolute;left:0;top:.55em;height:.7em;width:3px;background:var(--primary);border-radius:2px}
+  h3.sh{font-size:1.05rem;margin:1.75rem 0 .5rem;color:var(--text)}
+
+  p{margin:0 0 1rem;color:var(--text-dim)}
+  p strong{color:var(--text)}
+
+  .lead{font-size:1.1rem;color:var(--text);line-height:1.7;border-left:2px solid var(--primary);padding-left:1rem;margin:1.5rem 0 2rem}
+
+  .bullets{margin:.5rem 0 1.25rem}
+  .bullets li{position:relative;padding-left:1.4rem;margin-bottom:.65rem;color:var(--text-dim)}
+  .bullets li::before{content:"▸";position:absolute;left:0;color:var(--primary);font-size:.9rem;top:1px}
+  .bullets li strong{color:var(--text)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0 2rem}
+  .col{padding:1.25rem;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.015)}
+  .col h4{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem}
+  .col.owned h4{color:var(--primary)}
+  .col.delegated h4{color:var(--accent-2)}
+  .col ul li{margin-bottom:.5rem;color:var(--text-dim);font-size:.92rem;padding-left:1.25rem;position:relative}
+  .col.owned ul li::before{content:"●";position:absolute;left:0;color:var(--primary);font-size:.7rem;top:5px}
+  .col.delegated ul li::before{content:"○";position:absolute;left:0;color:var(--accent-2);font-size:.7rem;top:5px}
+
+  .timeline{margin:1.5rem 0 2rem;padding-left:1.5rem;position:relative}
+  .timeline::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--primary),rgba(34,211,238,.15) 80%,transparent)}
+  .step{position:relative;margin-bottom:1.5rem;padding-left:1rem}
+  .step::before{content:"";position:absolute;left:-1.65rem;top:8px;width:12px;height:12px;border-radius:50%;background:var(--bg-0);border:2px solid var(--primary-dim)}
+  .step h3{font-size:1rem;color:var(--text);margin-bottom:.25rem}
+  .step .step-meta{font-family:var(--font-mono);font-size:.72rem;color:var(--primary);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem}
+  .step p{font-size:.95rem;margin-bottom:0}
+
+  .callout{margin:2rem 0;padding:1.25rem 1.5rem;border-left:3px solid var(--accent-4);background:linear-gradient(90deg,rgba(251,191,36,.06),transparent);border-radius:0 var(--radius) var(--radius) 0}
+  .callout .ck{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-4);margin-bottom:.4rem}
+  .callout p{margin:0;color:var(--text)}
+
+  .takeaways{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:1.5rem 0 2rem}
+  .takeaway{padding:1.25rem;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.015)}
+  .takeaway .num{font-family:var(--font-mono);color:var(--primary);font-size:.85rem;margin-bottom:.5rem}
+  .takeaway h4{font-size:.95rem;margin-bottom:.4rem;color:var(--text)}
+  .takeaway p{font-size:.88rem;margin:0;color:var(--text-dim);line-height:1.5}
+
+  .footer-cta{margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1.1rem;border-radius:var(--radius);font-weight:500;font-size:.92rem;border:1px solid transparent;transition:all .2s}
+  .btn-primary{background:var(--primary);color:#04131a;border-color:var(--primary)}
+  .btn-primary:hover{background:var(--primary-hi);box-shadow:0 0 0 6px var(--primary-glow);transform:translateY(-1px)}
+  .btn-ghost{background:transparent;color:var(--text);border-color:var(--border-hi)}
+  .btn-ghost:hover{border-color:var(--primary);color:var(--primary-hi)}
+
+  .footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.5rem var(--pad);background:var(--footer-bg)}
+
+  /* Light-theme overrides */
+  :root[data-theme="light"] .meta-chip { background: rgba(8,145,178,.04); }
+  :root[data-theme="light"] .meta-chip.primary { background: rgba(8,145,178,.10); border-color: rgba(8,145,178,.35); color: var(--primary); }
+  :root[data-theme="light"] .meta-chip.accent { background: rgba(124,58,237,.10); border-color: rgba(124,58,237,.35); color: var(--accent-2); }
+  :root[data-theme="light"] .article-kicker { background: rgba(8,145,178,.06); border-color: rgba(8,145,178,.35); color: var(--primary); }
+  :root[data-theme="light"] .col { background: rgba(8,145,178,.025); }
+  :root[data-theme="light"] .takeaway { background: rgba(8,145,178,.025); }
+  :root[data-theme="light"] .live-dot { box-shadow: 0 0 0 3px rgba(16,185,129,.25); }
+  :root[data-theme="light"] code { color: var(--primary) !important; background: rgba(8,145,178,.08) !important; }
+
+  /* Theme toggle button */
+  .theme-toggle { background: transparent; border: 1px solid var(--border); border-radius: 999px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-dim); cursor: pointer; padding: 0; transition: color .2s, border-color .2s, background .2s; }
+  .theme-toggle:hover { color: var(--primary); border-color: var(--primary); background: rgba(34,211,238,.06); }
+  :root[data-theme="light"] .theme-toggle:hover { background: rgba(8,145,178,.06); }
+  .theme-toggle svg { width: 16px; height: 16px; }
+  .theme-toggle .icon-sun { display: none; }
+  :root[data-theme="light"] .theme-toggle .icon-sun { display: block; }
+  :root[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+  .nav-actions { display: inline-flex; align-items: center; gap: 1rem; }
+  .footer-inner{max-width:var(--max);margin:0 auto;font-size:.78rem;color:var(--text-mute);font-family:var(--font-mono);text-align:center}
+
+  @media (max-width:640px){
+    .split{grid-template-columns:1fr}
+    .footer-cta{flex-direction:column;align-items:stretch}
+    .footer-cta .btn{justify-content:center}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+    html{scroll-behavior:auto}
+  }
+  </style>
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="../index.html" class="nav-logo">
+        <span class="logo-mark">dp</span>
+      </a>
+      <div class="nav-actions">
+        <a href="../index.html" class="nav-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to portfolio
+        </a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark theme" aria-pressed="false" title="Toggle theme">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <article>
+    <span class="article-kicker">
+      <span class="live-dot"></span>
+      Case Study · Live
+    </span>
+
+    <h1 class="title">This site, built collaboratively with an AI agent.</h1>
+    <p class="subtitle">
+      A meta-project: shipping my own portfolio in a single afternoon by pairing
+      with an AI coding agent. The output is what you're reading. The interesting
+      part is the process: what I owned, what I delegated, and what I edited.
+    </p>
+
+    <div class="meta-row">
+      <span class="meta-chip primary">Status · Live</span>
+      <span class="meta-chip accent">Type · Meta-project</span>
+      <span class="meta-chip">HTML</span>
+      <span class="meta-chip">CSS</span>
+      <span class="meta-chip">JavaScript</span>
+      <span class="meta-chip">GitHub Pages</span>
+      <span class="meta-chip">Claude (Cowork)</span>
+    </div>
+
+    <p class="lead">
+      I work in data: pipelines, warehouses, dashboards. Frontend isn't my home turf.
+      But I needed a portfolio. So I treated it as a small experiment: <strong>how far
+      can I get if I bring the same scoping, decision-making, and review discipline I
+      apply at work, but use an AI agent to handle the implementation?</strong>
+    </p>
+
+    <h2 class="h">The brief</h2>
+    <p>
+      A single-page portfolio that signals my craft as a Senior BI Engineer
+      at a glance. It needed to:
+    </p>
+    <ul class="bullets">
+      <li>Translate <strong>8+ years across CTT, Audiogest, Multivision (Nokia), and EDP</strong> into something a recruiter can scan in 30 seconds.</li>
+      <li>Look the part for the role: technical, clean, not a generic template.</li>
+      <li>Be <strong>easy to extend</strong> as I add real projects (case studies, dashboards, pipelines).</li>
+      <li>Deploy on GitHub Pages with no build step or framework lock-in.</li>
+    </ul>
+
+    <h2 class="h">The collaboration model</h2>
+    <p>
+      I framed this as <em>pair programming, not delegation</em>. The agent gets context,
+      generates options, and writes code. I drive: I make the decisions, push back when
+      output drifts, and review every line that ends up in the repo.
+    </p>
+
+    <div class="split">
+      <div class="col owned">
+        <h4>What I owned</h4>
+        <ul>
+          <li>Defining the brief, audience, and tone</li>
+          <li>Choosing the design direction (dark + cyan + data-viz motifs)</li>
+          <li>Picking which CV content to surface and how to translate it</li>
+          <li>Deciding sections, hierarchy, and what to leave out</li>
+          <li>Reviewing every code change and rejecting drift</li>
+          <li>Catching the broken preview and demanding a fix</li>
+        </ul>
+      </div>
+      <div class="col delegated">
+        <h4>What the agent handled</h4>
+        <ul>
+          <li>Reading the CV PDFs and surfacing salient details</li>
+          <li>Generating the HTML, CSS, and JS scaffolding</li>
+          <li>Implementing the responsive layout and animations</li>
+          <li>Writing the GitHub Pages deployment guide</li>
+          <li>Inlining assets when relative paths broke in preview</li>
+          <li>Suggesting future project ideas grounded in my CV</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 class="h">Process — start to live in one session</h2>
+    <ol class="timeline">
+      <li class="step">
+        <p class="step-meta">Step 1 · Scoping</p>
+        <h3>Clarifying questions before code</h3>
+        <p>The agent didn't start writing. It read both my Portuguese and English CVs, then asked four targeted questions: language, design style, sections, and GitHub setup. That single round eliminated the most common AI failure mode: confidently building the wrong thing.</p>
+      </li>
+      <li class="step">
+        <p class="step-meta">Step 2 · Design call</p>
+        <h3>Recommendation, not menu</h3>
+        <p>When I asked for a design suggestion, it proposed <em>"modern tech / dark mode with data-viz accents"</em> with reasoning grounded in my field. I accepted, and we anchored every later decision (typography, color, motifs) to that direction.</p>
+      </li>
+      <li class="step">
+        <p class="step-meta">Step 3 · Build</p>
+        <h3>Structured generation, sectioned output</h3>
+        <p>Hero, About, Experience timeline, Skills, Projects, Interests, Contact, all built in a single pass with a clear task list. Tech badges, key results, and stat numbers were sourced directly from the CVs (<em>10,000+ daily dashboard users</em>, <em>500+ stakeholders</em>, <em>2,500 hours saved/year</em>).</p>
+      </li>
+      <li class="step">
+        <p class="step-meta">Step 4 · Verification</p>
+        <h3>The honest part — verification didn't go cleanly</h3>
+        <p>The agent tried to render the site headlessly to verify, but the sandbox wedged on a backgrounded server. It told me, clearly. It then did a static review and flagged the limitation rather than claiming success. I noticed when I previewed it that the CSS wasn't loading, told the agent, and we diagnosed it: the preview pane sandboxes sibling files. Fix: inline the CSS, JS, and favicon as data URIs. One round.</p>
+      </li>
+      <li class="step">
+        <p class="step-meta">Step 5 · This case study</p>
+        <h3>Make the meta-project the first project</h3>
+        <p>Once I saw it working, I realized the build itself was the most honest "Agentic AI" example I could put on the site. So I asked for this page.</p>
+      </li>
+    </ol>
+
+    <div class="callout">
+      <p class="ck">Reflection</p>
+      <p>The agent saved me probably a week of front-end work. It didn't save me from the work that actually matters: deciding what to say, what to surface, and what to cut. That's still mine. The leverage is in the implementation, not the judgment.</p>
+    </div>
+
+    <h2 class="h">Decisions worth mentioning</h2>
+
+    <h3 class="sh">No framework, no build step</h3>
+    <p>Plain HTML, CSS, vanilla JS. No React, no static site generator, no Tailwind. For a single-page portfolio, the build pipeline would weigh more than the site. GitHub Pages can serve it as-is, and I can edit any line without learning a tooling stack.</p>
+
+    <h3 class="sh">Inline everything for preview portability</h3>
+    <p>After the preview-pane CSS issue, I had the agent inline CSS, JS, and the favicon directly into <code class="mono" style="color:var(--primary-hi);background:rgba(34,211,238,.08);padding:.1rem .35rem;border-radius:4px">index.html</code>. The modular files still exist in the repo for reference, but the live site is one self-contained file. Trade-off: less modular, but immune to any sandbox/preview issue and easier to share.</p>
+
+    <h3 class="sh">Real numbers, not vague claims</h3>
+    <p>The hero stats (8+ years, 500+ stakeholders, 10k+ daily dashboard users, 2,500 hours/year automated) all come directly from my CV. No rounding up, no marketing inflation. If a recruiter asks me to back any of them, I can.</p>
+
+    <h3 class="sh">Placeholder cards are a feature, not a bug</h3>
+    <p>The other three project slots are visibly empty by design, signaling "this portfolio is being actively built" rather than pretending to be more complete than it is. As I publish each case study, it replaces a placeholder.</p>
+
+    <h2 class="h">Takeaways</h2>
+    <div class="takeaways">
+      <div class="takeaway">
+        <p class="num">01</p>
+        <h4>Scope first, code never</h4>
+        <p>The cheapest minute is the one where the agent asks a clarifying question instead of generating output. Reward that behavior.</p>
+      </div>
+      <div class="takeaway">
+        <p class="num">02</p>
+        <h4>Pair, don't delegate</h4>
+        <p>Treat the agent like a fast colleague who needs context. Don't hand over judgment. Hand over implementation.</p>
+      </div>
+      <div class="takeaway">
+        <p class="num">03</p>
+        <h4>Verify what you can</h4>
+        <p>The agent flagged when verification was incomplete. That honesty is worth more than a confident "done".</p>
+      </div>
+      <div class="takeaway">
+        <p class="num">04</p>
+        <h4>Ship, then iterate</h4>
+        <p>v1 live in an afternoon beats v3 forever in a branch. Real projects will replace placeholders one by one.</p>
+      </div>
+    </div>
+
+    <h2 class="h">What's next</h2>
+    <p>
+      This site is v1. The next iterations are content, not code:
+    </p>
+    <ul class="bullets">
+      <li><strong>NPS deep-dive on a public dataset</strong>: replicating the methodology I used at CTT in a fully reproducible way.</li>
+      <li><strong>Quality of Service dashboard case study</strong>: the design and DAX logic behind a dashboard used daily by 10k+ people, on non-sensitive sample data.</li>
+      <li><strong>SQL pattern cookbook</strong>: reusable patterns I've applied at work (SCDs, date dimensions, data quality checks).</li>
+      <li>Each replaces a placeholder card.</li>
+    </ul>
+
+    <div class="footer-cta">
+      <a class="btn btn-ghost" href="../index.html">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back to portfolio
+      </a>
+      <a class="btn btn-primary" href="../index.html#contact">
+        Get in touch
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+  </article>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      © <span id="year"></span> Daniela Patrício · Case study v1.0
+    </div>
+  </footer>
+
+  <script>
+    const y = document.getElementById("year");
+    if (y) y.textContent = new Date().getFullYear();
+
+    const themeBtn = document.getElementById("themeToggle");
+    if (themeBtn) {
+      const updatePressed = () => {
+        const isLight = document.documentElement.getAttribute("data-theme") === "light";
+        themeBtn.setAttribute("aria-pressed", String(isLight));
+      };
+      updatePressed();
+      themeBtn.addEventListener("click", () => {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("dp-theme", next); } catch (e) {}
+        updatePressed();
+      });
+    }
+  </script>
+</body>
+</html>

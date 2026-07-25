@@ -1,0 +1,11 @@
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+node_modules/
+
+# Pokopia scraper artifacts (build intermediates — data.js is the runtime artifact)
+projects/pokopia/.cache/
+projects/pokopia/__pycache__/
+projects/pokopia/data.json

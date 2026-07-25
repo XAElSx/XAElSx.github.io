@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Case study: a single-page habitat planner for Pokémon Pokopia. A recommendation system on a self-healing dataset, built in vanilla JS with a Python scraper." />
+<meta name="theme-color" content="#0a0f1a" />
+<meta property="og:title" content="Pokopia Habitat Planner — A Recommendation System on a Self-Healing Dataset" />
+<meta property="og:description" content="Side project: graph data model flattened into a one-glance ranked list, served as a single static file. Built in vanilla JS with a self-healing Python scraper." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://danielapatricio.github.io/projects/pokopia-habitat.html" />
+<meta property="og:image" content="https://danielapatricio.github.io/assets/linkedin-featured-dark.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Pokopia Habitat Planner — Case Study" />
+<meta name="twitter:description" content="Side project: graph data model flattened into a one-glance ranked list, served as a single static file. Built in vanilla JS with a self-healing Python scraper." />
+<meta name="twitter:image" content="https://danielapatricio.github.io/assets/linkedin-featured-dark.png" />
+<title>Pokopia Habitat Planner — Case Study · Daniela Patrício</title>
+
+<script>
+(function() {
+  try {
+    var saved = localStorage.getItem("dp-theme");
+    var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230a0f1a'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='ui-monospace,Menlo,monospace' font-weight='700' font-size='14' fill='%2322d3ee'>dp</text></svg>" />
+
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg-0: #070b14; --bg-1: #0a0f1a; --bg-2: #0f1624; --bg-3: #141d30;
+    --surface: #111826; --surface-hi: #1a2336;
+    --border: rgba(120, 160, 210, 0.12); --border-hi: rgba(120, 180, 230, 0.25);
+    --text: #e7ecf4; --text-dim: #9aa7bd; --text-mute: #6b7891;
+    --primary: #22d3ee; --primary-hi: #67e8f9; --primary-dim: #0891b2;
+    --primary-glow: rgba(34, 211, 238, 0.18);
+    --accent-2: #a78bfa; --accent-3: #34d399; --accent-4: #fbbf24;
+    --success: #10b981;
+    --grid-line: rgba(120, 160, 210, 0.05);
+    --title-grad: linear-gradient(180deg, #ffffff 0%, #b7c3d8 100%);
+    --strong-color: #f2f6fc;
+    --nav-bg: rgba(7, 11, 20, 0.7);
+    --footer-bg: rgba(0, 0, 0, 0.2);
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --radius: 12px; --radius-lg: 18px;
+    --max: 880px; --pad: clamp(1.25rem, 2vw, 2rem);
+  }
+  :root[data-theme="light"] {
+    --bg-0: #ffffff; --bg-1: #f8fafc; --bg-2: #f1f5f9; --bg-3: #e2e8f0;
+    --surface: #ffffff; --surface-hi: #f8fafc;
+    --border: rgba(15, 22, 36, 0.10); --border-hi: rgba(15, 22, 36, 0.20);
+    --text: #0f1624; --text-dim: #475569; --text-mute: #6b7280;
+    --primary: #0891b2; --primary-hi: #0e7490; --primary-dim: #22d3ee;
+    --primary-glow: rgba(8, 145, 178, 0.14);
+    --accent-2: #7c3aed; --accent-3: #047857; --accent-4: #d97706;
+    --success: #047857;
+    --grid-line: rgba(15, 22, 36, 0.04);
+    --title-grad: linear-gradient(180deg, #0f1624 0%, #475569 100%);
+    --strong-color: #0a1320;
+    --nav-bg: rgba(255, 255, 255, 0.78);
+    --footer-bg: rgba(15, 22, 36, 0.03);
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;min-height:100vh;font-family:var(--font-sans);font-size:16px;line-height:1.7;color:var(--text);background:var(--bg-0);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  img,svg{display:block;max-width:100%}
+  a{color:var(--primary-hi);text-decoration:none;transition:color .2s}
+  a:hover{color:var(--primary)}
+  ul,ol{padding:0;margin:0;list-style:none}
+  h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+  strong{color:var(--strong-color);font-weight:600}
+  em{color:var(--text);font-style:italic}
+  .mono{font-family:var(--font-mono);font-feature-settings:"liga" 0,"calt" 0}
+  code{font-family:var(--font-mono);font-size:.88em;color:var(--primary-hi);background:rgba(34,211,238,.08);padding:.1rem .35rem;border-radius:4px}
+  :root[data-theme="light"] code{color:var(--primary);background:rgba(8,145,178,.08)}
+
+  .bg-grid{position:fixed;inset:0;z-index:-2;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:64px 64px;-webkit-mask-image:radial-gradient(ellipse at 50% 0%,black 30%,transparent 80%);mask-image:radial-gradient(ellipse at 50% 0%,black 30%,transparent 80%)}
+  .bg-glow{position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:900px;height:600px;z-index:-1;background:radial-gradient(closest-side,var(--primary-glow),transparent 70%);filter:blur(40px);pointer-events:none}
+
+  .nav{position:sticky;top:0;z-index:50;-webkit-backdrop-filter:saturate(160%) blur(10px);backdrop-filter:saturate(160%) blur(10px);background:var(--nav-bg);border-bottom:1px solid var(--border)}
+  .nav-inner{max-width:1200px;margin:0 auto;padding:.9rem var(--pad);display:flex;align-items:center;justify-content:space-between;gap:2rem}
+  .nav-logo{display:inline-flex;align-items:baseline;font-family:var(--font-mono);font-weight:600;color:var(--text);font-size:1.1rem}
+  .logo-mark{color:var(--primary)}
+  .nav-back{font-family:var(--font-mono);font-size:.9rem;color:var(--text-dim);display:inline-flex;align-items:center;gap:.4rem}
+  .nav-back:hover{color:var(--primary-hi)}
+  .nav-actions{display:inline-flex;align-items:center;gap:1rem}
+
+  .theme-toggle{background:transparent;border:1px solid var(--border);border-radius:999px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;padding:0;transition:color .2s,border-color .2s,background .2s}
+  .theme-toggle:hover{color:var(--primary);border-color:var(--primary);background:rgba(34,211,238,.06)}
+  :root[data-theme="light"] .theme-toggle:hover{background:rgba(8,145,178,.06)}
+  .theme-toggle svg{width:16px;height:16px}
+  .theme-toggle .icon-sun{display:none}
+  :root[data-theme="light"] .theme-toggle .icon-sun{display:block}
+  :root[data-theme="light"] .theme-toggle .icon-moon{display:none}
+
+  article{max-width:var(--max);margin:0 auto;padding:clamp(2.5rem,6vw,4rem) var(--pad) 4rem}
+
+  .article-kicker{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .75rem;border:1px solid rgba(34,211,238,.35);border-radius:999px;background:rgba(34,211,238,.06);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--primary-hi);margin-bottom:1.25rem}
+  :root[data-theme="light"] .article-kicker{background:rgba(8,145,178,.06);border-color:rgba(8,145,178,.35);color:var(--primary)}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.2);animation:pulse 2s ease-in-out infinite}
+  :root[data-theme="light"] .live-dot{box-shadow:0 0 0 3px rgba(16,185,129,.25)}
+  @keyframes pulse{50%{box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+
+  h1.title{font-size:clamp(2rem,4.5vw,3.25rem);font-weight:700;letter-spacing:-.03em;background:var(--title-grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:.75rem}
+  .subtitle{font-size:1.1rem;color:var(--text-dim);max-width:60ch;margin-bottom:2rem}
+
+  .meta-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+  .meta-chip{font-family:var(--font-mono);font-size:.75rem;padding:.3rem .65rem;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);background:rgba(255,255,255,.02)}
+  :root[data-theme="light"] .meta-chip{background:rgba(8,145,178,.04)}
+  .meta-chip.primary{border-color:rgba(34,211,238,.35);color:var(--primary-hi);background:rgba(34,211,238,.08)}
+  :root[data-theme="light"] .meta-chip.primary{background:rgba(8,145,178,.10);border-color:rgba(8,145,178,.35);color:var(--primary)}
+  .meta-chip.accent{border-color:rgba(167,139,250,.35);color:var(--accent-2);background:rgba(167,139,250,.08)}
+  :root[data-theme="light"] .meta-chip.accent{background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.35);color:var(--accent-2)}
+
+  h2.h{font-size:clamp(1.4rem,2.4vw,1.75rem);margin:3rem 0 1rem;color:var(--text);position:relative;padding-left:1rem}
+  h2.h::before{content:"";position:absolute;left:0;top:.55em;height:.7em;width:3px;background:var(--primary);border-radius:2px}
+  h3.sh{font-size:1.05rem;margin:1.75rem 0 .5rem;color:var(--text)}
+
+  p{margin:0 0 1rem;color:var(--text-dim)}
+  p strong{color:var(--text)}
+
+  .lead{font-size:1.1rem;color:var(--text);line-height:1.7;border-left:2px solid var(--primary);padding-left:1rem;margin:1.5rem 0 2rem}
+
+  .bullets{margin:.5rem 0 1.25rem}
+  .bullets li{position:relative;padding-left:1.4rem;margin-bottom:.65rem;color:var(--text-dim)}
+  .bullets li::before{content:"▸";position:absolute;left:0;color:var(--primary);font-size:.9rem;top:1px}
+  .bullets li strong{color:var(--text)}
+
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.8rem;margin:1.5rem 0 2.5rem}
+  .stat-card{padding:1rem 1.1rem;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.015)}
+  :root[data-theme="light"] .stat-card{background:rgba(8,145,178,.025)}
+  .stat-num{font-family:var(--font-mono);font-size:1.5rem;font-weight:600;color:var(--text);line-height:1;margin-bottom:.3rem}
+  .stat-num .accent{color:var(--primary)}
+  .stat-label{font-size:.75rem;color:var(--text-mute);text-transform:uppercase;letter-spacing:.05em}
+
+  .callout{margin:2rem 0;padding:1.25rem 1.5rem;border-left:3px solid var(--accent-4);background:linear-gradient(90deg,rgba(251,191,36,.06),transparent);border-radius:0 var(--radius) var(--radius) 0}
+  :root[data-theme="light"] .callout{background:linear-gradient(90deg,rgba(217,119,6,.07),transparent)}
+  .callout .ck{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-4);margin-bottom:.4rem}
+  .callout p{margin:0;color:var(--text)}
+
+  .takeaways{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:1.5rem 0 2rem}
+  .takeaway{padding:1.25rem;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.015)}
+  :root[data-theme="light"] .takeaway{background:rgba(8,145,178,.025)}
+  .takeaway .num{font-family:var(--font-mono);color:var(--primary);font-size:.85rem;margin-bottom:.5rem}
+  .takeaway h4{font-size:.95rem;margin-bottom:.4rem;color:var(--text)}
+  .takeaway p{font-size:.88rem;margin:0;color:var(--text-dim);line-height:1.5}
+
+  pre.code{font-family:var(--font-mono);font-size:.82rem;line-height:1.55;color:var(--text-dim);background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.2rem;margin:1.25rem 0 2rem;overflow-x:auto;white-space:pre}
+  :root[data-theme="light"] pre.code{background:rgba(8,145,178,.025)}
+  pre.code .kw{color:var(--primary)}
+  pre.code .cmt{color:var(--text-mute);font-style:italic}
+
+  .footer-cta{margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1.1rem;border-radius:var(--radius);font-weight:500;font-size:.92rem;border:1px solid transparent;transition:all .2s}
+  .btn-primary{background:var(--primary);color:#04131a;border-color:var(--primary)}
+  .btn-primary:hover{background:var(--primary-hi);box-shadow:0 0 0 6px var(--primary-glow);transform:translateY(-1px)}
+  :root[data-theme="light"] .btn-primary{color:#ffffff}
+  .btn-ghost{background:transparent;color:var(--text);border-color:var(--border-hi)}
+  .btn-ghost:hover{border-color:var(--primary);color:var(--primary-hi)}
+  :root[data-theme="light"] .btn-ghost:hover{color:var(--primary)}
+
+  .footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.5rem var(--pad);background:var(--footer-bg)}
+  .footer-inner{max-width:var(--max);margin:0 auto;font-size:.78rem;color:var(--text-mute);font-family:var(--font-mono);text-align:center}
+
+  @media (max-width:640px){
+    .footer-cta{flex-direction:column;align-items:stretch}
+    .footer-cta .btn{justify-content:center}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="../index.html" class="nav-logo"><span class="logo-mark">dp</span></a>
+      <div class="nav-actions">
+        <a href="../index.html" class="nav-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to portfolio
+        </a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark theme" aria-pressed="false" title="Toggle theme">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <article>
+    <span class="article-kicker">
+      <span class="live-dot"></span>
+      Case Study · Live
+    </span>
+
+    <h1 class="title">Pokopia Habitat Planner — A recommendation system on a self-healing dataset.</h1>
+    <p class="subtitle">
+      A side project for the Switch 2 game <em>Pokémon Pokopia</em>. Built out of necessity, but the
+      underlying engineering is the same recommendation pattern I work with professionally.
+      Different domain, identical problem at the right level of abstraction.
+    </p>
+
+    <div class="meta-row">
+      <span class="meta-chip primary">Status · Live</span>
+      <span class="meta-chip accent">Type · Side project</span>
+      <span class="meta-chip">HTML</span>
+      <span class="meta-chip">Vanilla JS</span>
+      <span class="meta-chip">CSS</span>
+      <span class="meta-chip">Python 3</span>
+      <span class="meta-chip">requests · BeautifulSoup</span>
+      <span class="meta-chip">~1,500 LOC</span>
+    </div>
+
+    <p class="lead">
+      In Pokémon Pokopia, up to four Pokémon share a habitat, and each Pokémon has a set of
+      "favourite" item categories. Picking a complementary roster (so the items you place
+      make as many residents happy as possible) is a small combinatorial puzzle. The app
+      makes that puzzle solvable at a glance.
+    </p>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num"><span class="accent">307</span></div>
+        <div class="stat-label">Pokémon</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><span class="accent">607</span></div>
+        <div class="stat-label">Items</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><span class="accent">43</span></div>
+        <div class="stat-label">Favourite categories</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><span class="accent">~1,500</span></div>
+        <div class="stat-label">Lines of code</div>
+      </div>
+    </div>
+
+    <h2 class="h">The brief</h2>
+    <p>
+      I needed to plan habitats efficiently in-game. The native interface tells you each
+      Pokémon's favourite categories one at a time. Fine for two residents, painful at
+      four. I wanted a tool that, given a roster, would surface the items most residents
+      would care about, ranked by overlap, with light filtering on category and item type.
+    </p>
+
+    <h2 class="h">The data model</h2>
+    <p>
+      Underneath, the structure is a <strong>directed graph</strong> between three node
+      types: Pokémon, favourite categories, and items. A Pokémon points at its favourite
+      categories; a category contains many items; an item belongs to one category and
+      optionally one type tag (Decoration, Toy, Relaxation, Road, or Untagged).
+    </p>
+    <p>
+      The UX challenge is that nobody wants to see a graph. They want one ranked list:
+      <em>"which items, given my roster, make the most residents happy?"</em>
+    </p>
+
+    <p>The flattening is the recommendation logic:</p>
+    <pre class="code"><span class="cmt"># For each item, count how many roster members</span>
+<span class="cmt"># share the favourite category that contains it.</span>
+<span class="cmt"># Rank descending. Tie-break on category name.</span>
+
+<span class="kw">function</span> rankItems(roster, items, categories) {
+  <span class="kw">return</span> items
+    .map(item => ({
+      ...item,
+      overlap: roster.filter(p => p.favourites.includes(item.category)).length
+    }))
+    .filter(item => item.overlap > 0)
+    .sort((a, b) => b.overlap - a.overlap || a.category.localeCompare(b.category));
+}</pre>
+
+    <p>
+      The user never has to think about the graph. They add Pokémon to slots; the page
+      re-ranks immediately; the top of the list is "<em>this item makes 4 of your 4 residents
+      happy</em>", working downward to "1 of 4". That's the whole product.
+    </p>
+
+    <h2 class="h">The engineering</h2>
+
+    <h3 class="sh">Frontend — single file, no build, no framework</h3>
+    <p>
+      One <code>index.html</code> with vanilla JavaScript and CSS custom properties for theming.
+      A custom anchored ARIA combobox for searching Pokémon, full keyboard navigation, and
+      colour-coded type pills. Data layer is a single <code>data.js</code> file that wraps
+      the dataset onto <code>window.POKOPIA_DATA</code> for the page to consume.
+    </p>
+    <p>
+      No bundler, no transpiler, no <code>node_modules</code>. The whole thing is two HTML/JS
+      files and a folder of sprites. A user could clone it and double-click <code>index.html</code>
+      and the tool would run.
+    </p>
+
+    <h3 class="sh">Data pipeline — a self-healing scraper</h3>
+    <p>
+      The dataset comes from <strong>serebii.net</strong> via a Python scraper
+      (<code>scrape_pokopia.py</code>) using <code>requests</code> and <code>BeautifulSoup</code>.
+      What makes it self-healing:
+    </p>
+    <ul class="bullets">
+      <li><strong>SHA1-keyed local HTTP cache.</strong> Re-runs are idempotent and fast; re-fetching only happens when an upstream URL is genuinely new or has been invalidated.</li>
+      <li><strong>Clean separation between fetch and parse.</strong> The cache stores raw HTML pages keyed by URL hash. Schema changes on serebii would only break parsing, never the cache. I can iterate on parsers without re-hitting the network.</li>
+      <li><strong>Edge-case handling baked in.</strong> Slugs containing dots (<code>mr.mime</code>, <code>mimejr.</code>), sprite filenames with form suffixes (<code>235-smearguru.png</code>), inconsistent page titles, and Pokopia's own sequential dex numbering (which differs from National Dex).</li>
+      <li><strong>Sprites downloaded once, served locally.</strong> No runtime dependency on serebii; the deployed app works offline once loaded.</li>
+    </ul>
+
+    <div class="callout">
+      <p class="ck">Why this matters</p>
+      <p>The same patterns I rely on at work: idempotent re-runs, separation of "fetch raw" from "parse structured", local caching for resilience. A side project is a legitimate place to practice the boring fundamentals that make data pipelines reliable. None of this is unique to Pokémon; it's how I'd build a scraper for anything.</p>
+    </div>
+
+    <h2 class="h">Decisions worth mentioning</h2>
+
+    <h3 class="sh">No framework, on purpose</h3>
+    <p>
+      A planner for a Pokémon game does not need React. The whole frontend is one
+      <code>index.html</code> with HTML, CSS, and vanilla JS in a single file, and would
+      have been bigger and slower in any framework. Static-first means it loads
+      instantly, runs offline after first paint, and doesn't bit-rot when the framework
+      ecosystem moves on. For a personal tool I want to still work in five years, that's
+      a feature, not a constraint.
+    </p>
+
+    <h3 class="sh">Graph model in storage, ranked list in the UI</h3>
+    <p>
+      I deliberately split the data model from the user-facing representation. The graph
+      lets me re-derive any view (which categories does this roster overlap on? which
+      items appear in multiple categories? which Pokémon care about this specific item?)
+      without restructuring the data. The UI flattens to a single ranked list because
+      that's the actionable answer. If I add a different view later (a per-Pokémon
+      view, a comparison view), the same data layer supports it.
+    </p>
+
+    <h3 class="sh">Local sprite copies, downloaded once</h3>
+    <p>
+      I considered hot-linking sprites from serebii but didn't, both for politeness
+      (don't be a freeloader on someone else's bandwidth) and resilience (if their CDN
+      changes, my tool keeps working). 307 PNGs is ~30 MB; trivial to bundle.
+    </p>
+
+    <h2 class="h">Takeaways</h2>
+    <div class="takeaways">
+      <div class="takeaway">
+        <p class="num">01</p>
+        <h4>Build for yourself first</h4>
+        <p>I built this because I needed it. Wanting it badly enough to build is half the work.</p>
+      </div>
+      <div class="takeaway">
+        <p class="num">02</p>
+        <h4>The pattern travels</h4>
+        <p>Item-roster overlap ranking is the same pattern as a recommendation row. Different data, identical thinking.</p>
+      </div>
+      <div class="takeaway">
+        <p class="num">03</p>
+        <h4>Boring infra wins</h4>
+        <p>Idempotent caching and clean fetch/parse separation aren't sexy. They're why the scraper still runs months later without babysitting.</p>
+      </div>
+      <div class="takeaway">
+        <p class="num">04</p>
+        <h4>Static beats clever</h4>
+        <p>Two files and a folder. No backend, no framework. Loads instantly, hosts free, ages well.</p>
+      </div>
+    </div>
+
+    <div class="footer-cta">
+      <a class="btn btn-ghost" href="../index.html">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back to portfolio
+      </a>
+      <a class="btn btn-primary" href="pokopia/index.html">
+        Open the tool
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+  </article>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      © <span id="year"></span> Daniela Patrício · Pokopia Habitat Planner case study
+    </div>
+  </footer>
+
+  <script>
+    const y = document.getElementById("year");
+    if (y) y.textContent = new Date().getFullYear();
+
+    const themeBtn = document.getElementById("themeToggle");
+    if (themeBtn) {
+      const updatePressed = () => {
+        const isLight = document.documentElement.getAttribute("data-theme") === "light";
+        themeBtn.setAttribute("aria-pressed", String(isLight));
+      };
+      updatePressed();
+      themeBtn.addEventListener("click", () => {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("dp-theme", next); } catch (e) {}
+        updatePressed();
+      });
+    }
+  </script>
+</body>
+</html>
